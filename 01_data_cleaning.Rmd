@@ -1,0 +1,330 @@
+---
+title: "Untitled"
+output: html_document
+date: "2025-06-25"
+---
+#This script is to clean the data and obtain a single selection tables .csv file for each location. We will filter those audio files which fit our criteria, rename the columns and/or filenames, and obtain a collated selection table for all site-codes in each location. 
+
+##Loading required libraries
+```{r}
+library(tidyverse)
+library(dplyr)
+library(stringr)
+library(vegan)
+library(ggplot2)
+library(scico)
+library(data.table)
+library(extrafont)
+library(sf)
+library(raster)
+```
+
+##Reading the metadata files and obtaining a list of files which have: duration ~ 295 seconds (around 5 mins), sampling rate = 32 kHz, channel = 1 (mono)
+```{r}
+#Guwahati:
+GUW_metadata <- read.csv ('E:/CovidSoundscape project/Acoustics data/Guwahati/GUW_metadata.csv') 
+GUW_metadata_V1 <- GUW_metadata %>%
+  filter (duration >= 295, sample.rate == 32, channels == 1) %>% #filtering out the others
+  rename (filename = sound.files) #renaming the column for future analyses
+  
+#Delhi:
+DEL_metadata <- read.csv ('E:/CovidSoundscape project/Acoustics data/Delhi/DEL_metadata.csv') 
+DEL_metadata_V1 <- DEL_metadata %>%
+  filter (duration >= 295, sample.rate == 32, channels == 1) %>%
+  rename (filename = sound.files) 
+
+#Kodaikanal:
+KOD_metadata <- read.csv ('E:/CovidSoundscape project/Acoustics data/Kodaikanal/KOD_metadata.csv') 
+KOD_metadata_V1 <- KOD_metadata %>%
+  filter (duration >= 295, sample.rate == 32, channels == 1) %>%
+  rename (filename = sound.files) 
+
+#Mumbai:
+MUM_metadata <- read.csv ('E:/CovidSoundscape project/Acoustics data/Mumbai/MUM_metadata.csv') 
+MUM_metadata_V1 <- MUM_metadata %>%
+  filter (duration >= 295, sample.rate == 32, channels == 1) %>%
+  rename (filename = sound.files) 
+
+#Tirupati:
+TPT_metadata <- read.csv ('E:/CovidSoundscape project/Acoustics data/Tirupati/TPT_metadata.csv') 
+TPT_metadata_V1 <- TPT_metadata %>%
+  filter (duration >= 295, sample.rate == 32, channels == 1) %>%
+  rename (filename = sound.files) 
+
+#Valparai:
+VAL_metadata <- read.csv ('E:/CovidSoundscape project/Acoustics data/Valparai/VAL_metadata.csv') 
+VAL_metadata_V1 <- VAL_metadata %>%
+  filter (duration >= 295, sample.rate == 32, channels == 1) %>%
+  rename (filename = sound.files) 
+```
+
+##Reading the selection tables and creating one master sheet for each location
+```{r}
+#Guwahati: 
+GUW01A <- "E:/CovidSoundscape project/Acoustics data/Guwahati/GUW01A_R74/GUW01A_results"
+file_list <- list.files (GUW01A, pattern = "\\.txt$", full.names = TRUE, recursive = TRUE) #calling the txt files
+txt_files <- lapply(file_list, read.delim, header = TRUE, sep = "\t") #to read each txt file 
+GUW01A <- do.call(rbind, txt_files) #combining all of them to create a single dataframe
+
+GUW01B <- "E:/CovidSoundscape project/Acoustics data/Guwahati/GUW01B_R73/GUW01B_results"
+file_list <- list.files (GUW01B, pattern = "\\.txt$", full.names = TRUE, recursive = TRUE) 
+txt_files <- lapply(file_list, read.delim, header = TRUE, sep = "\t") 
+GUW01B <- do.call(rbind, txt_files) 
+
+GUW02A <- "E:/CovidSoundscape project/Acoustics data/Guwahati/GUW02A_A11/GUW02A_results"
+file_list <- list.files (GUW02A, pattern = "\\.txt$", full.names = TRUE, recursive = TRUE) 
+txt_files <- lapply(file_list, read.delim, header = TRUE, sep = "\t") 
+GUW02A <- do.call(rbind, txt_files) 
+
+GUW03A <- "E:/CovidSoundscape project/Acoustics data/Guwahati/GUW03A_A12/GUW03A_results"
+file_list <- list.files (GUW03A, pattern = "\\.txt$", full.names = TRUE, recursive = TRUE) 
+txt_files <- lapply(file_list, read.delim, header = TRUE, sep = "\t") 
+GUW03A <- do.call(rbind, txt_files) 
+
+GUW03B <- "E:/CovidSoundscape project/Acoustics data/Guwahati/GUW03B_A10/GUW03B_results"
+file_list <- list.files (GUW03B, pattern = "\\.txt$", full.names = TRUE, recursive = TRUE) 
+txt_files <- lapply(file_list, read.delim, header = TRUE, sep = "\t") 
+GUW03B <- do.call(rbind, txt_files)
+
+GUW <- bind_rows (GUW01A, GUW01B, GUW02A, GUW03A, GUW03B) #combining selection tables of all site_codes
+
+#Delhi: 
+DEL01A <- "E:/CovidSoundscape project/Acoustics data/Delhi/DEL01A_A5/DEL01A_results"
+file_list <- list.files (DEL01A, pattern = "\\.txt$", full.names = TRUE, recursive = TRUE) 
+txt_files <- lapply(file_list, read.delim, header = TRUE, sep = "\t") 
+DEL01A <- do.call(rbind, txt_files)
+
+DEL01B <- "E:/CovidSoundscape project/Acoustics data/Delhi/DEL01B_A7/DEL01B_results"
+file_list <- list.files (DEL01B, pattern = "\\.txt$", full.names = TRUE, recursive = TRUE) 
+txt_files <- lapply(file_list, read.delim, header = TRUE, sep = "\t") 
+DEL01B <- do.call(rbind, txt_files) 
+
+DEL02A <- "E:/CovidSoundscape project/Acoustics data/Delhi/DEL02A-Aravali/DEL02A_results"
+file_list <- list.files (DEL02A, pattern = "\\.txt$", full.names = TRUE, recursive = TRUE) 
+txt_files <- lapply(file_list, read.delim, header = TRUE, sep = "\t") 
+DEL02A <- do.call(rbind, txt_files) 
+
+DEL02B <- "E:/CovidSoundscape project/Acoustics data/Delhi/DEL02B-Aravali/DEL02B_results"
+file_list <- list.files (DEL02B, pattern = "\\.txt$", full.names = TRUE, recursive = TRUE) 
+txt_files <- lapply(file_list, read.delim, header = TRUE, sep = "\t") 
+DEL02B <- do.call(rbind, txt_files) 
+
+DEL <- bind_rows (DEL01A, DEL01B, DEL02A, DEL02B)
+
+#Kodaikanal: 
+KOD01A <- "E:/CovidSoundscape project/Acoustics data/Kodaikanal/KOD01A_R75/KOD01A_results"
+file_list <- list.files (KOD01A, pattern = "\\.txt$", full.names = TRUE, recursive = TRUE) 
+txt_files <- lapply(file_list, read.delim, header = TRUE, sep = "\t") 
+KOD01A <- do.call(rbind, txt_files) 
+
+KOD01B <- "E:/CovidSoundscape project/Acoustics data/Kodaikanal/KOD01B_R71/KOD01B_results"
+file_list <- list.files (KOD01B, pattern = "\\.txt$", full.names = TRUE, recursive = TRUE) 
+txt_files <- lapply(file_list, read.delim, header = TRUE, sep = "\t") 
+KOD01B <- do.call(rbind, txt_files) 
+
+filename <- data.frame (filename = basename(KOD01B$Begin.Path)) 
+
+KOD01B <- KOD01B %>% 
+  mutate (Begin.Path = gsub("R_71_", "KOD01B_", Begin.Path)) #these steps are to change the filenames
+
+KOD02A <- "E:/CovidSoundscape project/Acoustics data/Kodaikanal/KOD02A_AM24/KOD02A_results"
+file_list <- list.files (KOD02A, pattern = "\\.txt$", full.names = TRUE, recursive = TRUE) 
+txt_files <- lapply(file_list, read.delim, header = TRUE, sep = "\t") 
+KOD02A <- do.call(rbind, txt_files) 
+
+KOD <- bind_rows (KOD01A, KOD01B, KOD02A)
+
+#Mumbai: 
+MUM01A <- "E:/CovidSoundscape project/Acoustics data/Mumbai/MUM01A_SM401/MUM01A_results"
+file_list <- list.files (MUM01A, pattern = "\\.txt$", full.names = TRUE, recursive = TRUE) 
+txt_files <- lapply(file_list, read.delim, header = TRUE, sep = "\t") 
+MUM01A <- do.call(rbind, txt_files) 
+
+MUM01B <- "E:/CovidSoundscape project/Acoustics data/Mumbai/MUM01B_SM402/MUM01B_results"
+file_list <- list.files (MUM01B, pattern = "\\.txt$", full.names = TRUE, recursive = TRUE) 
+txt_files <- lapply(file_list, read.delim, header = TRUE, sep = "\t") 
+MUM01B <- do.call(rbind, txt_files) 
+
+MUM03A <- "E:/CovidSoundscape project/Acoustics data/Mumbai/MUM03A_AM04/MUM03A_results"
+file_list <- list.files (MUM03A, pattern = "\\.txt$", full.names = TRUE, recursive = TRUE) 
+txt_files <- lapply(file_list, read.delim, header = TRUE, sep = "\t") 
+MUM03A <- do.call(rbind, txt_files) 
+
+MUM03B <- "E:/CovidSoundscape project/Acoustics data/Mumbai/MUM03B_AM01/MUM03B_results"
+file_list <- list.files (MUM03B, pattern = "\\.txt$", full.names = TRUE, recursive = TRUE) 
+txt_files <- lapply(file_list, read.delim, header = TRUE, sep = "\t") 
+MUM03B <- do.call(rbind, txt_files) 
+
+MUM <- bind_rows (MUM01A, MUM01B, MUM03A, MUM03B)
+
+#Tirupati:
+TPT01A <- "E:/CovidSoundscape project/Acoustics data/Tirupati/TPT01A_R1269/TPT01A_results"
+file_list <- list.files (TPT01A, pattern = "\\.txt$", full.names = TRUE, recursive = TRUE) 
+txt_files <- lapply(file_list, read.delim, header = TRUE, sep = "\t") 
+TPT01A <- do.call(rbind, txt_files) 
+
+filename <- data.frame (filename = basename(TPT01A$Begin.Path)) 
+
+TPT01A <- TPT01A %>% 
+  mutate (Begin.Path = gsub("R1269_", "TPT01A_", Begin.Path)) #these steps are to change the filenames
+
+TPT01B <- "E:/CovidSoundscape project/Acoustics data/Tirupati/TPT01B_R1267/TPT01B_results"
+file_list <- list.files (TPT01B, pattern = "\\.txt$", full.names = TRUE, recursive = TRUE) 
+txt_files <- lapply(file_list, read.delim, header = TRUE, sep = "\t") 
+TPT01B <- do.call(rbind, txt_files) 
+
+TPT02A <- "E:/CovidSoundscape project/Acoustics data/Tirupati/TPT02A_R1275/TPT02A_results"
+file_list <- list.files (TPT02A, pattern = "\\.txt$", full.names = TRUE, recursive = TRUE) 
+txt_files <- lapply(file_list, read.delim, header = TRUE, sep = "\t") 
+TPT02A <- do.call(rbind, txt_files) 
+
+filename <- data.frame (filename = basename(TPT02A$Begin.Path)) 
+
+TPT02A <- TPT02A %>% 
+  mutate (Begin.Path = gsub("R1275_", "TPT02A_", Begin.Path)) #these steps are to change the filenames
+
+TPT03B <- "E:/CovidSoundscape project/Acoustics data/Tirupati/TPT03B_AM18/TPT03B_results"
+file_list <- list.files (TPT03B, pattern = "\\.txt$", full.names = TRUE, recursive = TRUE) 
+txt_files <- lapply(file_list, read.delim, header = TRUE, sep = "\t") 
+TPT03B <- do.call(rbind, txt_files) 
+
+TPT <- bind_rows (TPT01A, TPT01B, TPT02A, TPT03B)
+
+#Valparai:
+VAL01A <- "E:/CovidSoundscape project/Acoustics data/Valparai/VAL01A_SM4-04/VAL01A_results"
+file_list <- list.files (VAL01A, pattern = "\\.txt$", full.names = TRUE, recursive = TRUE) 
+txt_files <- lapply(file_list, read.delim, header = TRUE, sep = "\t") 
+VAL01A <- do.call(rbind, txt_files) 
+
+VAL01B <- "E:/CovidSoundscape project/Acoustics data/Valparai/VAL01B_SM4-03/VAL01B_results"
+file_list <- list.files (VAL01B, pattern = "\\.txt$", full.names = TRUE, recursive = TRUE) 
+txt_files <- lapply(file_list, read.delim, header = TRUE, sep = "\t") 
+VAL01B <- do.call(rbind, txt_files) 
+
+VAL02A <- "E:/CovidSoundscape project/Acoustics data/Valparai/VAL02A_AM01/VAL02A_results"
+file_list <- list.files (VAL02A, pattern = "\\.txt$", full.names = TRUE, recursive = TRUE) 
+txt_files <- lapply(file_list, read.delim, header = TRUE, sep = "\t") 
+VAL02A <- do.call(rbind, txt_files) 
+
+VAL02B <- "E:/CovidSoundscape project/Acoustics data/Valparai/VAL02B_AM02/VAL02B_results"
+file_list <- list.files (VAL02B, pattern = "\\.txt$", full.names = TRUE, recursive = TRUE) 
+txt_files <- lapply(file_list, read.delim, header = TRUE, sep = "\t") 
+VAL02B <- do.call(rbind, txt_files) 
+
+VAL03A <- "E:/CovidSoundscape project/Acoustics data/Valparai/VAL03A_AM04/VAL03A_results"
+file_list <- list.files (VAL03A, pattern = "\\.txt$", full.names = TRUE, recursive = TRUE) 
+txt_files <- lapply(file_list, read.delim, header = TRUE, sep = "\t") 
+VAL03A <- do.call(rbind, txt_files) 
+
+VAL03B <- "E:/CovidSoundscape project/Acoustics data/Valparai/VAL03B_AM03/VAL03B_results"
+file_list <- list.files (VAL03B, pattern = "\\.txt$", full.names = TRUE, recursive = TRUE) 
+txt_files <- lapply(file_list, read.delim, header = TRUE, sep = "\t") 
+VAL03B <- do.call(rbind, txt_files) 
+
+VAL <- bind_rows (VAL01A, VAL01B, VAL02A, VAL02B, VAL03A, VAL03B)
+```
+
+##Cleaning the data 
+```{r}
+#Guwahati:
+filename <- data.frame (filename = basename(GUW$Begin.Path)) #extracting only the filenames from the Begin paths
+
+GUW <- GUW %>% 
+  dplyr::bind_cols (., filename) %>% #attaching the filename column to he GUW dataframe
+  rename (selection= Selection, view= View, channel = Channel, begin_time = Begin.Time..s., end_time = End.Time..s., low_freq= Low.Freq..Hz., high_freq= High.Freq..Hz., common_name = Common.Name, species_code = Species.Code, confidence = Confidence, begin_path = Begin.Path, file_offset = File.Offset..s.) %>% #renaming the columns
+  dplyr::select(-begin_path) %>% #removing the begin.path column
+  inner_join (., GUW_metadata_V1, by = 'filename') %>% #retaining selections only from the selected audio files
+  dplyr::select (selection, view, channel, begin_time, end_time, low_freq, high_freq, common_name, species_code, confidence, filename, file_offset) %>%
+  separate(., col = filename, into = c("site_code", "date", "time"), sep = "_") %>% #splitting filename into three columns: site_code, date, and time
+ mutate(time = tools::file_path_sans_ext(time)) %>% #removing .wav file extension
+ na.omit () %>% #filtering any rows with NA, if any
+ filter (!common_name == 'nocall') #removing those files with no BirdNET annotations
+
+write.csv (GUW, 'C:/Users/pavit/OneDrive/Desktop/IISER-Tirupati-FA-2025_App/COVIDSoundscapes-project/BirdNET/results/GUW_BirdNET_annotations.csv')
+  
+#Delhi: 
+filename <- data.frame (filename = basename(DEL$Begin.Path)) 
+
+DEL <- DEL %>% 
+  dplyr::bind_cols (., filename) %>% 
+  rename (selection= Selection, view= View, channel = Channel, begin_time = Begin.Time..s., end_time = End.Time..s., low_freq= Low.Freq..Hz., high_freq= High.Freq..Hz., common_name = Common.Name, species_code = Species.Code, confidence = Confidence, begin_path = Begin.Path, file_offset = File.Offset..s.) %>% 
+  dplyr::select(-begin_path) %>% 
+  inner_join (., DEL_metadata_V1, by = 'filename') %>% 
+  dplyr::select (selection, view, channel, begin_time, end_time, low_freq, high_freq, common_name, species_code, confidence, filename, file_offset) %>%
+  separate(., col = filename, into = c("site_code", "date", "time"), sep = "_") %>% 
+ mutate(time = tools::file_path_sans_ext(time)) %>%
+  na.omit () %>% 
+ filter (!common_name == 'nocall')
+
+write.csv (DEL, 'C:/Users/pavit/OneDrive/Desktop/IISER-Tirupati-FA-2025_App/COVIDSoundscapes-project/BirdNET/results/DEL_BirdNET_annotations.csv')
+
+#Kodaikanal:
+filename <- data.frame (filename = basename(KOD$Begin.Path)) 
+
+KOD <- KOD %>% 
+  dplyr::bind_cols (., filename) %>% 
+  rename (selection= Selection, view= View, channel = Channel, begin_time = Begin.Time..s., end_time = End.Time..s., low_freq= Low.Freq..Hz., high_freq= High.Freq..Hz., common_name = Common.Name, species_code = Species.Code, confidence = Confidence, begin_path = Begin.Path, file_offset = File.Offset..s.) %>% 
+  dplyr::select(-begin_path) %>% 
+  inner_join (., KOD_metadata_V1, by = 'filename') %>% 
+  dplyr::select (selection, view, channel, begin_time, end_time, low_freq, high_freq, common_name, species_code, confidence, filename, file_offset) %>%
+  separate(., col = filename, into = c("site_code", "date", "time"), sep = "_") %>% 
+ mutate(time = tools::file_path_sans_ext(time)) %>%
+  na.omit () %>% 
+ filter (!common_name == 'nocall')
+
+write.csv (KOD, 'C:/Users/pavit/OneDrive/Desktop/IISER-Tirupati-FA-2025_App/COVIDSoundscapes-project/BirdNET/results/KOD_BirdNET_annotations.csv')
+
+#Mumbai:
+filename <- data.frame (filename = basename(MUM$Begin.Path)) 
+
+MUM <- MUM %>% 
+  dplyr::bind_cols (., filename) %>% 
+  rename (selection= Selection, view= View, channel = Channel, begin_time = Begin.Time..s., end_time = End.Time..s., low_freq= Low.Freq..Hz., high_freq= High.Freq..Hz., common_name = Common.Name, species_code = Species.Code, confidence = Confidence, begin_path = Begin.Path, file_offset = File.Offset..s.) %>% 
+  dplyr::select(-begin_path) %>% 
+  inner_join (., MUM_metadata_V1, by = 'filename') %>% 
+  dplyr::select (selection, view, channel, begin_time, end_time, low_freq, high_freq, common_name, species_code, confidence, filename, file_offset) %>%
+  separate(., col = filename, into = c("site_code", "date", "time"), sep = "_") %>% 
+ mutate(time = tools::file_path_sans_ext(time)) %>%
+  na.omit () %>% 
+ filter (!common_name == 'nocall')
+
+write.csv (MUM, 'C:/Users/pavit/OneDrive/Desktop/IISER-Tirupati-FA-2025_App/COVIDSoundscapes-project/BirdNET/results/MUM_BirdNET_annotations.csv')
+
+#Tirupati:
+filename <- data.frame (filename = basename(TPT$Begin.Path)) 
+
+TPT <- TPT %>% 
+  dplyr::bind_cols (., filename) %>% 
+  rename (selection= Selection, view= View, channel = Channel, begin_time = Begin.Time..s., end_time = End.Time..s., low_freq= Low.Freq..Hz., high_freq= High.Freq..Hz., common_name = Common.Name, species_code = Species.Code, confidence = Confidence, begin_path = Begin.Path, file_offset = File.Offset..s.) %>% 
+  dplyr::select(-begin_path) %>% 
+  inner_join (., TPT_metadata_V1, by = 'filename') %>% 
+  dplyr::select (selection, view, channel, begin_time, end_time, low_freq, high_freq, common_name, species_code, confidence, filename, file_offset) %>%
+  separate(., col = filename, into = c("site_code", "date", "time"), sep = "_") %>% 
+ mutate(time = tools::file_path_sans_ext(time)) %>%
+  na.omit () %>% 
+ filter (!common_name == 'nocall')
+
+write.csv (TPT, 'C:/Users/pavit/OneDrive/Desktop/IISER-Tirupati-FA-2025_App/COVIDSoundscapes-project/BirdNET/results/TPT_BirdNET_annotations.csv')
+
+#Valparai:
+filename <- data.frame (filename = basename(VAL$Begin.Path)) 
+
+filename <- filename %>%
+  mutate (filename = gsub ("VAL01A__", "VAL01A_", filename))
+
+VAL <- VAL %>% #mutate (filename = basename (Begin.Path))  %>%
+  mutate (Begin.Path = gsub("VAL01A__", "VAL01A_", Begin.Path)) #these steps are to change the filenames
+
+VAL <- VAL %>% 
+  dplyr::bind_cols (., filename) %>% 
+  rename (selection= Selection, view= View, channel = Channel, begin_time = Begin.Time..s., end_time = End.Time..s., low_freq= Low.Freq..Hz., high_freq= High.Freq..Hz., common_name = Common.Name, species_code = Species.Code, confidence = Confidence, begin_path = Begin.Path, file_offset = File.Offset..s.) %>% 
+  dplyr::select(-begin_path) %>% 
+  inner_join (., VAL_metadata_V1, by = 'filename') %>% 
+  dplyr::select (selection, view, channel, begin_time, end_time, low_freq, high_freq, common_name, species_code, confidence, filename, file_offset) %>%
+  separate(., col = filename, into = c("site_code", "date", "time"), sep = "_") %>% 
+ mutate(time = tools::file_path_sans_ext(time)) %>%
+  na.omit () %>% 
+ filter (!common_name == 'nocall')
+
+write.csv (VAL, 'C:/Users/pavit/OneDrive/Desktop/IISER-Tirupati-FA-2025_App/COVIDSoundscapes-project/BirdNET/results/VAL_BirdNET_annotations.csv')
+```

@@ -1,0 +1,40 @@
+---
+title: "Untitled"
+output: html_document
+date: "2025-06-25"
+---
+#This script is to obtain metadata from audio files- specifically, sampling rate, number of channels, bit size, duration (in seconds), and number of samples in the entire file duration. Here, we only provide an example of a site-code. 
+
+#Loading required libraries
+```{r}
+library(warbleR)
+library(seewave)
+library(dplyr)
+library(stringr)
+library(tools)
+library(tuneR)
+library(tidyverse)
+library(tidyr)
+library(dplyr)
+```
+
+#Obtaining metadata from audio files
+```{r}
+#Only providing an example of a site_code (repeat this step for each site_code across all months)
+audio_directory <- "E:/CovidSoundscape project/Acoustics data/Valparai/VAL01A_SM4-04/VAL01A_audio_files/2023-01" #set the audio directory (repeat for each month)
+
+VAL01A_202301<- info_sound_files(path = audio_directory) #make sure that you remove all corrupted audio files before running this code
+ 
+#after running codes for each month, combine all of them to obtain a metadata .csv for all months for that site_code
+VAL01A_metadata <- bind_rows (VAL01A_202301, VAL01A_202212, VAL01A_202211, VAL01A_202210, VAL01A_202209, VAL01A_202208, VAL01A_202207, VAL01A_202206, VAL01A_202205)
+
+write.csv (VAL01A, 'E:/CovidSoundscape project/Acoustics data/Valparai/VAL01A_SM4-04/VAL01A_audio_files/VAL01A_metadata.csv') #making a copy of this file in the site_code specific folder
+
+#then, we combine the metadata across all site_codes to obtain a metadata .csv for that location
+VAL_metadata <- bind_rows (VAL01A_metadata, VAL01B_metadata, VAL02A_metadata, VAL02B_metadata, VAL03A_metadata, VAL03B_metadat)
+
+write.csv (VAL_metadata,'E:/CovidSoundscape project/Acoustics data/Valparai/VAL_metadata.csv')
+```
+
+
+

@@ -1,0 +1,127 @@
+---
+title: "Untitled"
+output: html_document
+date: "2025-06-25"
+---
+#This script is obtain the number of species detections at each location.  
+
+##Loading required libraries
+```{r}
+library(tidyverse)
+library(dplyr)
+library(stringr)
+library(vegan)
+library(ggplot2)
+library(scico)
+library(data.table)
+library(extrafont)
+library(sf)
+library(raster)
+```
+
+##Reading the location-specific selection table and the list of species common across all locations
+```{r}
+#Guwahati:
+GUW_annotations <- read.csv ('C:/Users/pavit/OneDrive/Desktop/IISER-Tirupati-FA-2025_App/COVIDSoundscapes-project/BirdNET/results/GUW_BirdNET_annotations.csv')
+
+#Delhi:
+DEL_annotations <- read.csv ('C:/Users/pavit/OneDrive/Desktop/IISER-Tirupati-FA-2025_App/COVIDSoundscapes-project/BirdNET/results/DEL_BirdNET_annotations.csv')
+
+#Kodaikanal:
+KOD_annotations <- read.csv ('C:/Users/pavit/OneDrive/Desktop/IISER-Tirupati-FA-2025_App/COVIDSoundscapes-project/BirdNET/results/KOD_BirdNET_annotations.csv')
+
+#Mumbai:
+MUM_annotations <- read.csv ('C:/Users/pavit/OneDrive/Desktop/IISER-Tirupati-FA-2025_App/COVIDSoundscapes-project/BirdNET/results/MUM_BirdNET_annotations.csv')
+
+#Tirupati:
+TPT_annotations <- read.csv ('C:/Users/pavit/OneDrive/Desktop/IISER-Tirupati-FA-2025_App/COVIDSoundscapes-project/BirdNET/results/TPT_BirdNET_annotations.csv')
+
+#Valparai:
+VAL_annotations <- read.csv ('C:/Users/pavit/OneDrive/Desktop/IISER-Tirupati-FA-2025_App/COVIDSoundscapes-project/BirdNET/results/VAL_BirdNET_annotations.csv')
+
+common_sp <- read.delim ('C:/Users/pavit/OneDrive/Desktop/IISER-Tirupati-FA-2025_App/COVIDSoundscapes-project/BirdNET/data/common_sp_list.txt', header = FALSE, sep = "\t") #this list consists of species common across all locations as derived from eBird
+
+common_sp <- common_sp %>% 
+  separate(., col = V1, into = c("scientific_name", "common_name"), sep = "_") #separating the single column into scientific name and common name
+```
+
+##Calculating the number of detections for each species
+```{r}
+#Guwahati:
+GUW_n <- GUW_annotations %>%
+  dplyr::select (common_name) %>%
+  group_by (common_name) %>%
+  count (.) %>% #obtaining the number of detections of each species
+  arrange (desc(n)) %>% #arranging in descending order such that species with the most detections come first and the species with the least detections come later
+  inner_join (., common_sp, by = 'common_name') %>% #filtering out species which are common across all locations
+  mutate (loc= 'GUW') %>% #adding a column indicating the location
+  dplyr::select (common_name, n, loc) %>% #retaining only those columns which are needed for further analyses
+  pivot_wider (names_from= loc, values_from = n) #using pivot_wider to organize the data such that there is a column for each location specifying the detections for each species
+
+#Delhi:
+DEL_n <- DEL_annotations %>%
+  dplyr::select (common_name) %>%
+  group_by (common_name) %>%
+  count (.) %>%
+  arrange (desc(n)) %>%
+  inner_join (., common_sp, by = 'common_name') %>% 
+  mutate (loc= 'DEL') %>% 
+  dplyr::select (common_name, n, loc) %>% 
+  pivot_wider (names_from= loc, values_from = n)
+
+#Kodaikanal:
+KOD_n <- KOD_annotations %>%
+  dplyr::select (common_name) %>%
+  group_by (common_name) %>%
+  count (.) %>%
+  arrange (desc(n)) %>%
+  inner_join (., common_sp, by = 'common_name') %>% 
+  mutate (loc= 'KOD') %>% 
+  dplyr::select (common_name, n, loc) %>% 
+  pivot_wider (names_from= loc, values_from = n)
+
+#Mumbai:
+MUM_n <- MUM_annotations %>%
+  dplyr::select (common_name) %>%
+  group_by (common_name) %>%
+  count (.) %>%
+  arrange (desc(n)) %>%
+  inner_join (., common_sp, by = 'common_name') %>% 
+  mutate (loc= 'MUM') %>% 
+  dplyr::select (common_name, n, loc) %>% 
+  pivot_wider (names_from= loc, values_from = n)
+
+#Tirupati:
+TPT_n <- TPT_annotations %>%
+  dplyr::select (common_name) %>%
+  group_by (common_name) %>%
+  count (.) %>%
+  arrange (desc(n)) %>%
+  inner_join (., common_sp, by = 'common_name') %>% 
+  mutate (loc= 'TPT') %>% 
+  dplyr::select (common_name, n, loc) %>% 
+  pivot_wider (names_from= loc, values_from = n)
+
+#Valparai:
+VAL_n <- VAL_annotations %>%
+  dplyr::select (common_name) %>%
+  group_by (common_name) %>%
+  count (.) %>%
+  arrange (desc(n)) %>%
+  inner_join (., common_sp, by = 'common_name') %>% 
+  mutate (loc= 'VAL') %>% 
+  dplyr::select (common_name, n, loc) %>% 
+  pivot_wider (names_from= loc, values_from = n)
+```
+
+##Filtering species which have been annotated by BirdNET across all locations
+```{r}
+list <- list (GUW_n, DEL_n, KOD_n, MUM_n, TPT_n, VAL_n) #creating a list of all dataframes
+
+sp_detections <- reduce(list, inner_join, by = 'common_name') %>%
+   filter(if_all(.fns = ~ . >= 10)) #filtering out species which have atleast 10 detections across all locations. This gives us 14 species
+
+write.csv (sp_detections, 'C:/Users/pavit/OneDrive/Desktop/IISER-Tirupati-FA-2025_App/COVIDSoundscapes-project/BirdNET/results/sp_detections.csv')
+```
+
+
