@@ -22,28 +22,30 @@ library(raster)
 ##Reading the location-specific selection table and the list of species common across all locations
 ```{r}
 #Guwahati:
-GUW_annotations <- read.csv ('C:/Users/pavit/OneDrive/Desktop/IISER-Tirupati-FA-2025_App/COVIDSoundscapes-project/BirdNET/results/GUW_BirdNET_annotations.csv')
+GUW_annotations <- read.csv ('C:/Users/pavit/OneDrive/Desktop/IISER-Tirupati-FA-2025_App/COVIDSoundscapes-project/BirdNET-vocal-activity/results/GUW_BirdNET_annotations.csv')
 
 #Delhi:
-DEL_annotations <- read.csv ('C:/Users/pavit/OneDrive/Desktop/IISER-Tirupati-FA-2025_App/COVIDSoundscapes-project/BirdNET/results/DEL_BirdNET_annotations.csv')
+DEL_annotations <- read.csv ('C:/Users/pavit/OneDrive/Desktop/IISER-Tirupati-FA-2025_App/COVIDSoundscapes-project/BirdNET-vocal-activity/results/DEL_BirdNET_annotations.csv')
 
 #Kodaikanal:
-KOD_annotations <- read.csv ('C:/Users/pavit/OneDrive/Desktop/IISER-Tirupati-FA-2025_App/COVIDSoundscapes-project/BirdNET/results/KOD_BirdNET_annotations.csv')
+KOD_annotations <- read.csv ('C:/Users/pavit/OneDrive/Desktop/IISER-Tirupati-FA-2025_App/COVIDSoundscapes-project/BirdNET-vocal-activity/results/KOD_BirdNET_annotations.csv')
 
 #Mumbai:
-MUM_annotations <- read.csv ('C:/Users/pavit/OneDrive/Desktop/IISER-Tirupati-FA-2025_App/COVIDSoundscapes-project/BirdNET/results/MUM_BirdNET_annotations.csv')
+MUM_annotations <- read.csv ('C:/Users/pavit/OneDrive/Desktop/IISER-Tirupati-FA-2025_App/COVIDSoundscapes-project/BirdNET-vocal-activity/results/MUM_BirdNET_annotations.csv')
 
 #Tirupati:
-TPT_annotations <- read.csv ('C:/Users/pavit/OneDrive/Desktop/IISER-Tirupati-FA-2025_App/COVIDSoundscapes-project/BirdNET/results/TPT_BirdNET_annotations.csv')
+TPT_annotations <- read.csv ('C:/Users/pavit/OneDrive/Desktop/IISER-Tirupati-FA-2025_App/COVIDSoundscapes-project/BirdNET-vocal-activity/results/TPT_BirdNET_annotations.csv')
 
 #Valparai:
-VAL_annotations <- read.csv ('C:/Users/pavit/OneDrive/Desktop/IISER-Tirupati-FA-2025_App/COVIDSoundscapes-project/BirdNET/results/VAL_BirdNET_annotations.csv')
+VAL_annotations <- read.csv ('C:/Users/pavit/OneDrive/Desktop/IISER-Tirupati-FA-2025_App/COVIDSoundscapes-project/BirdNET-vocal-activity/results/VAL_BirdNET_annotations.csv')
 
-common_sp <- read.delim ('C:/Users/pavit/OneDrive/Desktop/IISER-Tirupati-FA-2025_App/COVIDSoundscapes-project/BirdNET/data/common_sp_list.txt', header = FALSE, sep = "\t") #this list consists of species common across all locations as derived from eBird
+common_sp <- read.delim ('C:/Users/pavit/OneDrive/Desktop/IISER-Tirupati-FA-2025_App/COVIDSoundscapes-project/BirdNET-vocal-activity/data/common_sp_list.txt', header = FALSE, sep = "\t") #this list consists of species common across all locations as derived from eBird
 
 common_sp <- common_sp %>% 
   separate(., col = V1, into = c("scientific_name", "common_name"), sep = "_") #separating the single column into scientific name and common name
-```
+
+species_trait <- read.csv ('C:/Users/pavit/OneDrive/Desktop/IISER-Tirupati-FA-2025_App/COVIDSoundscapes-project/BirdNET-vocal-activity/data/species-trait-data.csv') #reading the AVONET trait database
+``` 
 
 ##Calculating the number of detections for each species
 ```{r}
@@ -118,10 +120,13 @@ VAL_n <- VAL_annotations %>%
 ```{r}
 list <- list (GUW_n, DEL_n, KOD_n, MUM_n, TPT_n, VAL_n) #creating a list of all dataframes
 
-sp_detections <- reduce(list, inner_join, by = 'common_name') %>%
-   filter(if_all(.fns = ~ . >= 10)) #filtering out species which have atleast 10 detections across all locations. This gives us 14 species
-
-write.csv (sp_detections, 'C:/Users/pavit/OneDrive/Desktop/IISER-Tirupati-FA-2025_App/COVIDSoundscapes-project/BirdNET/results/sp_detections.csv')
+sp_detections <- reduce(list, inner_join, by = 'common_name') %>% #getting the number of species detections at each location
+  inner_join (., species_trait, by = 'common_name') %>% #combining info about traits to get an overview
+  dplyr::select (common_name, scientific_name, GUW, VAL, DEL, KOD, TPT, MUM, Habitat, Primary.Lifestyle) %>%
+  filter (Habitat %in% c('Human Modified', 'Shrubland', 'Forest', 'Woodland')) %>%
+  filter(if_all(.fns = ~ . >= 10)) #filtering out species which have at least 10 detections across all locations. This gives us 7 species
 ```
+
+
 
 
