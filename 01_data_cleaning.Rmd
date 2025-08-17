@@ -240,7 +240,7 @@ GUW <- GUW %>%
  na.omit () %>% #filtering any rows with NA, if any
  filter (!common_name == 'nocall') #removing those files with no BirdNET annotations
 
-write.csv (GUW, 'C:/Users/pavit/OneDrive/Desktop/IISER-Tirupati-FA-2025_App/COVIDSoundscapes-project/BirdNET/results/GUW_BirdNET_annotations.csv')
+write.csv (GUW, 'C:/Users/pavit/OneDrive/Desktop/IISER-Tirupati-FA-2025_App/COVIDSoundscapes-project/BirdNET-vocal-activity/results/GUW_BirdNET_annotations.csv')
   
 #Delhi: 
 filename <- data.frame (filename = basename(DEL$Begin.Path)) 
@@ -256,7 +256,7 @@ DEL <- DEL %>%
   na.omit () %>% 
  filter (!common_name == 'nocall')
 
-write.csv (DEL, 'C:/Users/pavit/OneDrive/Desktop/IISER-Tirupati-FA-2025_App/COVIDSoundscapes-project/BirdNET/results/DEL_BirdNET_annotations.csv')
+write.csv (DEL, 'C:/Users/pavit/OneDrive/Desktop/IISER-Tirupati-FA-2025_App/COVIDSoundscapes-project/BirdNET-vocal-activity/results/DEL_BirdNET_annotations.csv')
 
 #Kodaikanal:
 filename <- data.frame (filename = basename(KOD$Begin.Path)) 
@@ -272,7 +272,7 @@ KOD <- KOD %>%
   na.omit () %>% 
  filter (!common_name == 'nocall')
 
-write.csv (KOD, 'C:/Users/pavit/OneDrive/Desktop/IISER-Tirupati-FA-2025_App/COVIDSoundscapes-project/BirdNET/results/KOD_BirdNET_annotations.csv')
+write.csv (KOD, 'C:/Users/pavit/OneDrive/Desktop/IISER-Tirupati-FA-2025_App/COVIDSoundscapes-project/BirdNET-vocal-activity/results/KOD_BirdNET_annotations.csv')
 
 #Mumbai:
 filename <- data.frame (filename = basename(MUM$Begin.Path)) 
@@ -288,7 +288,7 @@ MUM <- MUM %>%
   na.omit () %>% 
  filter (!common_name == 'nocall')
 
-write.csv (MUM, 'C:/Users/pavit/OneDrive/Desktop/IISER-Tirupati-FA-2025_App/COVIDSoundscapes-project/BirdNET/results/MUM_BirdNET_annotations.csv')
+write.csv (MUM, 'C:/Users/pavit/OneDrive/Desktop/IISER-Tirupati-FA-2025_App/COVIDSoundscapes-project/BirdNET-vocal-activity/results/MUM_BirdNET_annotations.csv')
 
 #Tirupati:
 filename <- data.frame (filename = basename(TPT$Begin.Path)) 
@@ -304,7 +304,7 @@ TPT <- TPT %>%
   na.omit () %>% 
  filter (!common_name == 'nocall')
 
-write.csv (TPT, 'C:/Users/pavit/OneDrive/Desktop/IISER-Tirupati-FA-2025_App/COVIDSoundscapes-project/BirdNET/results/TPT_BirdNET_annotations.csv')
+write.csv (TPT, 'C:/Users/pavit/OneDrive/Desktop/IISER-Tirupati-FA-2025_App/COVIDSoundscapes-project/BirdNET-vocal-activity/results/TPT_BirdNET_annotations.csv')
 
 #Valparai:
 filename <- data.frame (filename = basename(VAL$Begin.Path)) 
@@ -326,5 +326,5 @@ VAL <- VAL %>%
   na.omit () %>% 
  filter (!common_name == 'nocall')
 
-write.csv (VAL, 'C:/Users/pavit/OneDrive/Desktop/IISER-Tirupati-FA-2025_App/COVIDSoundscapes-project/BirdNET/results/VAL_BirdNET_annotations.csv')
+write.csv (VAL, 'C:/Users/pavit/OneDrive/Desktop/IISER-Tirupati-FA-2025_App/COVIDSoundscapes-project/BirdNET-vocal-activity/results/VAL_BirdNET_annotations.csv')
 ```
