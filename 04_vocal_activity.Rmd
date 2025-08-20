@@ -1,0 +1,77 @@
+---
+title: "04_vocal_activity"
+output: html_document
+date: "2025-08-20"
+---
+
+---
+#This script is to calculate the diurnal vocal activity patterns of each species.
+
+##Loading required libraries
+```{r}
+library(tidyverse)
+library(dplyr)
+library(stringr)
+library(vegan)
+library(ggplot2)
+library(scico)
+library(data.table)
+library(extrafont)
+library(sf)
+library(raster)
+library(lubridate)
+```
+
+##Reading the BirdNET annotation data
+```{r}
+#Guwahati:
+GUW_annotations <- read.csv ('C:/Users/pavit/OneDrive/Desktop/IISER-Tirupati-FA-2025_App/COVIDSoundscapes-project/BirdNET-vocal-activity/results/GUW_BirdNET_annotations.csv')
+```
+
+##Filtering the data to only include those months which were sampled entirely (this will differ by location)
+```{r}
+GUW_annotations$date <- as.Date(as.character(GUW_annotations$date), format = "%Y%m%d") #reading it in appropriate format
+
+GUW_annotations <- GUW_annotations %>%
+  separate(., col = date, into = c("year", "month", "day"), sep = "-", remove = FALSE) %>% #separating date 
+  filter (month %in% c('05', '06', '07', '11', '12', '01', '02')) %>% #only May, June, July, Nov, Dec 2022, and Jan and Feb 2023 have been sampled across entire months
+  dplyr::select (-year, -month, -day) #remving unwanted columns
+```
+
+##Calculating  sampling effort by time of day
+```{r}
+#Guwahati
+GUW_effort <- GUW_annotations %>%
+  dplyr::select(site_code, date, time) %>%
+  distinct() %>%
+  arrange(time) %>%
+  count(time) %>%
+  rename(., effort = n)
+```
+
+##Filtering the detections of our species of interest whose confidence scores are more than the calibrated species- and location specific thresholds
+```{r}
+##SPECIES- RVBU
+GUW_RVBU <- GUW_annotations %>%
+  dplyr::filter (common_name == 'Red-vented Bulbul') %>%
+  dplyr::filter (confidence >= 0.625)
+```
+
+##Calculating vocal activity as the percent detections at each hour of the day
+```{r}
+GUW_RVBU %>%
+  group_by(time) %>%
+  count (.) %>%
+  rename (detections = n) %>%
+  left_join(., GUW_effort, by = "time") %>% #adding the column of sampling effort for each hour of the day
+  mutate (normalized_detections = detections/effort) %>% #normalizing detections by dividing it by effort
+  ungroup () %>%
+  mutate(total_normalized_detections = sum(normalized_detections)) %>% 
+  mutate(percent_normalized_detections = (normalized_detections / total_normalized_detections) * 100) #this gives us the percent vocal activity for each hour of the day
+```
+
+
+
+
+
+
