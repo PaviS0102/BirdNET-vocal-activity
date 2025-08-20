@@ -1,0 +1,50 @@
+---
+title: "03_species_validation"
+output: html_document
+date: "2025-08-19"
+---
+
+---
+#This script is to select audio files and annotations for validation purposes. Firstly, we will be randomly selecting 50% of the number of the detections, validating them on Raven Pro, and conducting logistic regression to arrive at the species and location-specific confidence thresholds.
+
+##Loading required libraries
+```{r}
+library(tidyverse)
+library(dplyr)
+library(stringr)
+library(vegan)
+library(ggplot2)
+library(scico)
+library(data.table)
+library(extrafont)
+library(sf)
+library(raster)
+```
+
+##SPECIES- RVBU
+#Reading the validation tables
+```{r}
+GUW_RVBU <- read.delim ('D:/COVID-Soundscapes/Guwahati/GUW_validation/Red-vented Bulbul/GUW_RVBU_validation_table.txt', header = TRUE, sep = "\t")
+```
+
+#Extracting the confidence score values and adding it as a separate column
+```{r}
+GUW_RVBU$conf_score <- substr(GUW_RVBU$Begin.File, 1, 5)
+```
+
+#Fitting a logistic regression model and plotting the relationship between validation and confidence scores
+```{r}
+GUW_RVBU_LR <- glm(valid ~ conf_score, family = 'binomial', data = GUW_RVBU)
+
+prediction_values <- seq(0, 1, 0.25)
+
+predictions <- predict(GUW_RVBU_LR, list(conf_score = prediction_values), type = ‘r’
+                      
+Next, plot your observations (as points) and the predicted regression relationship (a  curve)
+
+plot(valid~ conf_score, data= GUW_RVBU, xlim=c(0,1), pch=16, col=rgb(0,0,0,.3))
+
+lines(predictions~prediction_values, lwd=4, col=rgb(1,0,0,.5))
+```
+
+
