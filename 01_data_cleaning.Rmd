@@ -235,7 +235,7 @@ GUW <- GUW %>%
   dplyr::select(-begin_path) %>% #removing the begin.path column
   inner_join (., GUW_metadata_V1, by = 'filename') %>% #retaining selections only from the selected audio files
   dplyr::select (selection, view, channel, begin_time, end_time, low_freq, high_freq, common_name, species_code, confidence, filename, file_offset) %>%
-  separate(., col = filename, into = c("site_code", "date", "time"), sep = "_") %>% #splitting filename into three columns: site_code, date, and time
+  separate(., col = filename, into = c("site_code", "date", "time"), sep = "_", remove = FALSE) %>% #splitting filename into three columns: site_code, date, and time
  mutate(time = tools::file_path_sans_ext(time)) %>% #removing .wav file extension
  na.omit () %>% #filtering any rows with NA, if any
  filter (!common_name == 'nocall') #removing those files with no BirdNET annotations
@@ -251,7 +251,7 @@ DEL <- DEL %>%
   dplyr::select(-begin_path) %>% 
   inner_join (., DEL_metadata_V1, by = 'filename') %>% 
   dplyr::select (selection, view, channel, begin_time, end_time, low_freq, high_freq, common_name, species_code, confidence, filename, file_offset) %>%
-  separate(., col = filename, into = c("site_code", "date", "time"), sep = "_") %>% 
+  separate(., col = filename, into = c("site_code", "date", "time"), sep = "_", remove = FALSE) %>% 
  mutate(time = tools::file_path_sans_ext(time)) %>%
   na.omit () %>% 
  filter (!common_name == 'nocall')
@@ -267,7 +267,7 @@ KOD <- KOD %>%
   dplyr::select(-begin_path) %>% 
   inner_join (., KOD_metadata_V1, by = 'filename') %>% 
   dplyr::select (selection, view, channel, begin_time, end_time, low_freq, high_freq, common_name, species_code, confidence, filename, file_offset) %>%
-  separate(., col = filename, into = c("site_code", "date", "time"), sep = "_") %>% 
+  separate(., col = filename, into = c("site_code", "date", "time"), sep = "_", remove = FALSE) %>% 
  mutate(time = tools::file_path_sans_ext(time)) %>%
   na.omit () %>% 
  filter (!common_name == 'nocall')
@@ -283,7 +283,7 @@ MUM <- MUM %>%
   dplyr::select(-begin_path) %>% 
   inner_join (., MUM_metadata_V1, by = 'filename') %>% 
   dplyr::select (selection, view, channel, begin_time, end_time, low_freq, high_freq, common_name, species_code, confidence, filename, file_offset) %>%
-  separate(., col = filename, into = c("site_code", "date", "time"), sep = "_") %>% 
+  separate(., col = filename, into = c("site_code", "date", "time"), sep = "_". remove = FALSE) %>% 
  mutate(time = tools::file_path_sans_ext(time)) %>%
   na.omit () %>% 
  filter (!common_name == 'nocall')
@@ -299,7 +299,7 @@ TPT <- TPT %>%
   dplyr::select(-begin_path) %>% 
   inner_join (., TPT_metadata_V1, by = 'filename') %>% 
   dplyr::select (selection, view, channel, begin_time, end_time, low_freq, high_freq, common_name, species_code, confidence, filename, file_offset) %>%
-  separate(., col = filename, into = c("site_code", "date", "time"), sep = "_") %>% 
+  separate(., col = filename, into = c("site_code", "date", "time"), sep = "_", remove = FALSE) %>% 
  mutate(time = tools::file_path_sans_ext(time)) %>%
   na.omit () %>% 
  filter (!common_name == 'nocall')
@@ -321,7 +321,7 @@ VAL <- VAL %>%
   dplyr::select(-begin_path) %>% 
   inner_join (., VAL_metadata_V1, by = 'filename') %>% 
   dplyr::select (selection, view, channel, begin_time, end_time, low_freq, high_freq, common_name, species_code, confidence, filename, file_offset) %>%
-  separate(., col = filename, into = c("site_code", "date", "time"), sep = "_") %>% 
+  separate(., col = filename, into = c("site_code", "date", "time"), sep = "_", remove= FALSE) %>% 
  mutate(time = tools::file_path_sans_ext(time)) %>%
   na.omit () %>% 
  filter (!common_name == 'nocall')
