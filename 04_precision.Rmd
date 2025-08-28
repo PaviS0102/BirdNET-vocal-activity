@@ -117,17 +117,106 @@ RVBU_precision <- bind_rows (GUW_RVBU_precision, DEL_RVBU_precision, KOD_RVBU_pr
   scale_fill_manual (values = c('black', 'grey'), labels = c("False positives", "True positives")) +
   theme_bw() +
   theme(legend.title = element_blank (), axis.title = element_text(size = 16, family = "A", face = "bold"), axis.text = element_text(size = 14, family = "A", colour = "black"), legend.text = element_text(size = 14, family = "A", colour = "black"))
-
-
-
-  
-
-
-
-
-
-
-  
-
 ```
+
+##SPECIES- GRCO
+#Reading the validation tables
+```{r}
+#Guwahati
+GUW_GRCO_annotations <- read.delim ('E:/COVID-Soundscapes/Guwahati/GUW_validation/GRCO/GUW_GRCO_validation_table.txt', header = TRUE, sep = "\t")
+
+#Delhi
+DEL_GRCO_annotations <- read.delim ('E:/COVID-Soundscapes/Delhi/DEL_validation/GRCO/DEL_GRCO_validation_table.txt', header = TRUE, sep = "\t")
+
+#Kodaikanal
+KOD_GRCO_annotations <- read.delim ('E:/COVID-Soundscapes/Kodaikanal/KOD_validation/GRCO/KOD_GRCO_validation_table.txt', header = TRUE, sep = "\t")
+```
+
+#Extracting the confidence score values and adding it as a separate column
+```{r}
+#Guwahati
+GUW_GRCO_annotations$conf_score <- substr(GUW_GRCO_annotations$Begin.File, 1, 5)
+
+#Delhi
+DEL_GRCO_annotations$conf_score <- substr(DEL_GRCO_annotations$Begin.File, 1, 5)
+
+#Kodaikanal
+KOD_GRCO_annotations$conf_score <- substr(KOD_GRCO_annotations$Begin.File, 1, 5)
+```
+
+#Calculating the number of true positives and false positives for the validated detections at each site
+```{r}
+#Guwahati
+GUW_GRCO_TP_FP <- GUW_GRCO_annotations %>%
+  count (.) 
+
+GUW_GRCO_TP <- GUW_GRCO_annotations %>%
+  filter (valid == 1) %>% 
+  count (.) %>% 
+  rename (n_TP= n) %>%
+  mutate (prop_TP = n_TP/GUW_GRCO_TP_FP$n) 
+
+GUW_GRCO_FP <- GUW_GRCO_annotations %>%
+  filter (valid == 0) %>% 
+  count (.) %>% 
+  rename (n_FP= n) %>%
+  mutate (prop_FP = n_FP/GUW_GRCO_TP_FP$n) 
+
+GUW_GRCO_precision <- bind_cols (GUW_GRCO_TP, GUW_GRCO_FP) %>% 
+  mutate (location = 'Guwahati (n = 557)', species = 'GRCO') %>% 
+dplyr::select (prop_TP, prop_FP, location, species) %>% #
+  pivot_longer (., cols = c(prop_FP, prop_TP), values_to = 'prop', names_to = 'type') 
+
+#Delhi
+DEL_GRCO_TP_FP <- DEL_GRCO_annotations %>%
+  count (.) 
+
+DEL_GRCO_TP <- DEL_GRCO_annotations %>%
+  filter (valid == 1) %>% 
+  count (.) %>% 
+  rename (n_TP= n) %>%
+  mutate (prop_TP = n_TP/DEL_GRCO_TP_FP$n) 
+
+DEL_GRCO_FP <- DEL_GRCO_annotations %>%
+  filter (valid == 0) %>% 
+  count (.) %>% 
+  rename (n_FP= n) %>%
+  mutate (prop_FP = n_FP/DEL_GRCO_TP_FP$n) 
+
+DEL_GRCO_precision <- bind_cols (DEL_GRCO_TP, DEL_GRCO_FP) %>% 
+  mutate (location = 'Delhi (n = 16)', species = 'GRCO') %>%
+  dplyr::select (prop_TP, prop_FP, location, species) %>%
+  pivot_longer (., cols = c(prop_FP, prop_TP), values_to = 'prop', names_to = 'type')
+
+#Kodaikanal
+KOD_GRCO_TP_FP <- KOD_GRCO_annotations %>%
+  count (.) 
+
+KOD_GRCO_TP <- KOD_GRCO_annotations %>%
+  filter (valid == 1) %>% 
+  count (.) %>% 
+  rename (n_TP= n) %>%
+  mutate (prop_TP = n_TP/KOD_GRCO_TP_FP$n) 
+
+KOD_GRCO_FP <- KOD_GRCO_annotations %>%
+  filter (valid == 0) %>% 
+  count (.) %>% 
+  rename (n_FP= n) %>%
+  mutate (prop_FP = n_FP/KOD_GRCO_TP_FP$n) 
+
+KOD_GRCO_precision <- bind_cols (KOD_GRCO_TP, KOD_GRCO_FP) %>% 
+  mutate (location = 'Kodaikanal (n = 14)', species = 'RVBU') %>%
+  dplyr::select (prop_TP, prop_FP, location, species) %>%
+  pivot_longer (., cols = c(prop_FP, prop_TP), values_to = 'prop', names_to = 'type')
+
+
+GRCO_precision <- bind_rows (GUW_GRCO_precision, DEL_GRCO_precision, KOD_GRCO_precision) %>% 
+  ggplot(., aes(x = prop, fill = type, y = location)) +
+  geom_bar(stat = "identity", width = 0.5) +
+  labs(x = 'Proportion of validated detections', y = 'Locations') +
+  scale_fill_manual (values = c('black', 'grey'), labels = c("False positives", "True positives")) +
+  theme_bw() +
+  theme(legend.title = element_blank (), axis.title = element_text(size = 16, family = "A", face = "bold"), axis.text = element_text(size = 14, family = "A", colour = "black"), legend.text = element_text(size = 14, family = "A", colour = "black"))
+```
+
 
