@@ -91,4 +91,72 @@ KOD_RVBU_plot <- plot(KOD_RVBU_annotations$valid ~ KOD_RVBU_annotations$conf_sco
 curve(predict(GUW_RVBU_LR, data.frame(conf_score = x), type = "response"),  add = TRUE, col = "red", lwd = 3) 
 ```
 
+##SPECIES- GRCO
+#Reading the validation tables
+```{r}
+#Guwahati
+GUW_GRCO_annotations <- read.delim ('E:/COVID-Soundscapes/Guwahati/GUW_validation/GRCO/GUW_GRCO_validation_table.txt', header = TRUE, sep = "\t")
+
+#Delhi
+DEL_GRCO_annotations <- read.delim ('E:/COVID-Soundscapes/Delhi/DEL_validation/GRCO/DEL_GRCO_validation_table.txt', header = TRUE, sep = "\t")
+
+#Kodaikanal
+KOD_GRCO_annotations <- read.delim ('E:/COVID-Soundscapes/Kodaikanal/KOD_validation/GRCO/KOD_GRCO_validation_table.txt', header = TRUE, sep = "\t")
+```
+
+#Extracting the confidence score values and adding it as a separate column
+```{r}
+#Guwahati
+GUW_GRCO_annotations$conf_score <- substr(GUW_GRCO_annotations$Begin.File, 1, 5)
+
+#Delhi
+DEL_GRCO_annotations$conf_score <- substr(DEL_GRCO_annotations$Begin.File, 1, 5)
+
+#Kodaikanal
+KOD_GRCO_annotations$conf_score <- substr(KOD_GRCO_annotations$Begin.File, 1, 5)
+```
+
+#Fitting a logistic regression model and plotting the relationship between validation and confidence scores
+```{r}
+windowsFonts(A = windowsFont("Century Gothic")) 
+
+#Guwahati
+GUW_GRCO_annotations$conf_score <- as.numeric (GUW_GRCO_annotations$conf_score) 
+
+GUW_GRCO_LR <- glm(valid ~ conf_score, family = 'binomial', data = GUW_GRCO_annotations) 
+
+prediction_values <- seq(0, 1, by = 0.1) 
+
+predictions <- predict(GUW_GRCO_LR, list(conf_score = prediction_values),  type = 'r') 
+
+GUW_GRCO_plot <- plot(GUW_GRCO_annotations$valid ~ GUW_GRCO_annotations$conf_score, data= GUW_GRCO_annotations, xlim=c(0,1), pch=16, cex = 1.2, col=rgb(0,0,0,.3), xlab = "BirdNET Confidence Score", ylab = "True Positive (0/1)", family = 'A')  
+curve(predict(GUW_GRCO_LR, data.frame(conf_score = x), type = "response"),  add = TRUE, col = "red", lwd = 2) 
+
+p <- 0.95 
+GUW_GRCO_threshold <- (log(p/(1-p))- GUW_GRCO_LR$coefficients[1]) /GUW_GRCO_LR$coefficients[2] 
+
+#Delhi
+DEL_GRCO_annotations$conf_score <- as.numeric (DEL_GRCO_annotations$conf_score) 
+
+DEL_GRCO_LR <- glm(valid ~ conf_score, family = 'binomial', data = DEL_GRCO_annotations) 
+
+prediction_values <- seq(0, 1, by = 0.1) 
+
+predictions <- predict(DEL_GRCO_LR, list(conf_score = prediction_values),  type = 'r') 
+
+DEL_GRCO_plot <- plot(DEL_GRCO_annotations$valid ~ DEL_GRCO_annotations$conf_score, data= DEL_GRCO_annotations, xlim=c(0,1), ylim=c(0,1), pch=16, cex = 1.2, col=rgb(0,0,0,.3), xlab = "BirdNET Confidence Score", ylab = "True Positive (0/1)", family = 'A')  
+curve(predict(DEL_GRCO_LR, data.frame(conf_score = x), type = "response"),  add = TRUE, col = "red", lwd = 2)
+
+#Kodaikanal
+KOD_GRCO_annotations$conf_score <- as.numeric (KOD_GRCO_annotations$conf_score) 
+
+KOD_GRCO_LR <- glm(valid ~ conf_score, family = 'binomial', data = KOD_GRCO_annotations) 
+
+prediction_values <- seq(0, 1, by = 0.1) 
+
+predictions <- predict(KOD_GRCO_LR, list(conf_score = prediction_values),  type = 'r') 
+
+KOD_GRCO_plot <- plot(KOD_GRCO_annotations$valid ~ KOD_GRCO_annotations$conf_score, data= KOD_GRCO_annotations, xlim=c(0,1), pch=16, cex = 1.2, col=rgb(0,0,0,.3), xlab = "BirdNET Confidence Score", ylab = "True Positive (0/1)", family = 'A')  
+curve(predict(GUW_GRCO_LR, data.frame(conf_score = x), type = "response"),  add = TRUE, col = "red", lwd = 3) 
+```
 
