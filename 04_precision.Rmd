@@ -1,0 +1,134 @@
+---
+title: "04_precision"
+output: html_document
+---
+
+#This script is to understand the precision of BirdNET predictions.   
+
+##Loading required libraries
+```{r}
+library(tidyverse)
+library(dplyr)
+library(stringr)
+library(vegan)
+library(ggplot2)
+library(scico)
+library(data.table)
+library(extrafont)
+library(sf)
+library(raster)
+```
+
+##SPECIES- RVBU
+#Reading the validation tables
+```{r}
+#Guwahati
+GUW_RVBU_annotations <- read.delim ('E:/COVID-Soundscapes/Guwahati/GUW_validation/RVBU/GUW_RVBU_validation_table.txt', header = TRUE, sep = "\t")
+
+#Delhi
+DEL_RVBU_annotations <- read.delim ('E:/COVID-Soundscapes/Delhi/DEL_validation/RVBU/DEL_RVBU_validation_table.txt', header = TRUE, sep = "\t")
+
+#Kodaikanal
+KOD_RVBU_annotations <- read.delim ('E:/COVID-Soundscapes/Kodaikanal/KOD_validation/RVBU/KOD_RVBU_validation_table.txt', header = TRUE, sep = "\t")
+```
+
+#Extracting the confidence score values and adding it as a separate column
+```{r}
+#Guwahati
+GUW_RVBU_annotations$conf_score <- substr(GUW_RVBU_annotations$Begin.File, 1, 5)
+
+#Delhi
+DEL_RVBU_annotations$conf_score <- substr(DEL_RVBU_annotations$Begin.File, 1, 5)
+
+#Kodaikanal
+KOD_RVBU_annotations$conf_score <- substr(KOD_RVBU_annotations$Begin.File, 1, 5)
+```
+
+#Calculating the number of true positives and false positives for the validated detections at each site
+```{r}
+#Guwahati
+GUW_RVBU_TP_FP <- GUW_RVBU_annotations %>%
+  count (.) #total number of validated detections
+
+GUW_RVBU_TP <- GUW_RVBU_annotations %>%
+  filter (valid == 1) %>% #filtering only correct detections (i.e. true positives)
+  count (.) %>% #no. of true positive detections
+  rename (n_TP= n) %>%
+  mutate (prop_TP = n_TP/GUW_RVBU_TP_FP$n) #proportion of true positive detections
+
+GUW_RVBU_FP <- GUW_RVBU_annotations %>%
+  filter (valid == 0) %>% #filtering only wrong detections (i.e. false positives)
+  count (.) %>% #np. of false positive detections
+  rename (n_FP= n) %>%
+  mutate (prop_FP = n_FP/GUW_RVBU_TP_FP$n) #proportion of false positive detections
+
+GUW_RVBU_precision <- bind_cols (GUW_RVBU_TP, GUW_RVBU_FP) %>% #combing both dataframes
+  mutate (location = 'Guwahati', species = 'RVBU') %>% #adding columns to indicate location and species
+dplyr::select (prop_TP, prop_FP, location, species) %>% #only retaining columns which are needed
+  pivot_longer (., cols = c(prop_FP, prop_TP), values_to = 'prop', names_to = 'type') #so that it becomes easier to plot
+
+
+#Delhi
+DEL_RVBU_TP_FP <- DEL_RVBU_annotations %>%
+  count (.) 
+
+DEL_RVBU_TP <- DEL_RVBU_annotations %>%
+  filter (valid == 1) %>% 
+  count (.) %>% 
+  rename (n_TP= n) %>%
+  mutate (prop_TP = n_TP/DEL_RVBU_TP_FP$n) 
+
+DEL_RVBU_FP <- DEL_RVBU_annotations %>%
+  filter (valid == 0) %>% 
+  count (.) %>% 
+  rename (n_FP= n) %>%
+  mutate (prop_FP = n_FP/DEL_RVBU_TP_FP$n) 
+
+DEL_RVBU_precision <- bind_cols (DEL_RVBU_TP, DEL_RVBU_FP) %>% 
+  mutate (location = 'Delhi', species = 'RVBU') %>%
+  dplyr::select (prop_TP, prop_FP, location, species) %>%
+  pivot_longer (., cols = c(prop_FP, prop_TP), values_to = 'prop', names_to = 'type')
+
+#Kodaikanal
+KOD_RVBU_TP_FP <- KOD_RVBU_annotations %>%
+  count (.) 
+
+KOD_RVBU_TP <- KOD_RVBU_annotations %>%
+  filter (valid == 1) %>% 
+  count (.) %>% 
+  rename (n_TP= n) %>%
+  mutate (prop_TP = n_TP/KOD_RVBU_TP_FP$n) 
+
+KOD_RVBU_FP <- KOD_RVBU_annotations %>%
+  filter (valid == 0) %>% 
+  count (.) %>% 
+  rename (n_FP= n) %>%
+  mutate (prop_FP = n_FP/KOD_RVBU_TP_FP$n) 
+
+KOD_RVBU_precision <- bind_cols (KOD_RVBU_TP, KOD_RVBU_FP) %>% 
+  mutate (location = 'Kodaikanal', species = 'RVBU') %>%
+  dplyr::select (prop_TP, prop_FP, location, species) %>%
+  pivot_longer (., cols = c(prop_FP, prop_TP), values_to = 'prop', names_to = 'type')
+
+
+RVBU_precision <- bind_rows (GUW_RVBU_precision, DEL_RVBU_precision, KOD_RVBU_precision) %>% #combining all the location and species dataframes
+  ggplot(., aes(x = prop, fill = type, y = location)) +
+  geom_bar(stat = "identity", width = 0.5) +
+  labs(x = 'Proportion of validated detections', y = 'Locations') + 
+  scale_fill_manual (values = c('black', 'grey'), labels = c("False positives", "True positives")) +
+  theme_bw() +
+  theme(legend.title = element_blank (), axis.title = element_text(size = 16, family = "A", face = "bold"), axis.text = element_text(size = 14, family = "A", colour = "black"), legend.text = element_text(size = 14, family = "A", colour = "black"))
+
+
+
+  
+
+
+
+
+
+
+  
+
+```
+
