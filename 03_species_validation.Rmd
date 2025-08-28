@@ -24,27 +24,71 @@ library(raster)
 ##SPECIES- RVBU
 #Reading the validation tables
 ```{r}
-GUW_RVBU <- read.delim ('D:/COVID-Soundscapes/Guwahati/GUW_validation/Red-vented Bulbul/GUW_RVBU_validation_table.txt', header = TRUE, sep = "\t")
+#Guwahati
+GUW_RVBU_annotations <- read.delim ('E:/COVID-Soundscapes/Guwahati/GUW_validation/RVBU/GUW_RVBU_validation_table.txt', header = TRUE, sep = "\t")
+
+#Delhi
+DEL_RVBU_annotations <- read.delim ('E:/COVID-Soundscapes/Delhi/DEL_validation/RVBU/DEL_RVBU_validation_table.txt', header = TRUE, sep = "\t")
+
+#Kodaikanal
+KOD_RVBU_annotations <- read.delim ('E:/COVID-Soundscapes/Kodaikanal/KOD_validation/RVBU/KOD_RVBU_validation_table.txt', header = TRUE, sep = "\t")
 ```
 
 #Extracting the confidence score values and adding it as a separate column
 ```{r}
-GUW_RVBU$conf_score <- substr(GUW_RVBU$Begin.File, 1, 5)
+#Guwahati
+GUW_RVBU_annotations$conf_score <- substr(GUW_RVBU_annotations$Begin.File, 1, 5)
+
+#Delhi
+DEL_RVBU_annotations$conf_score <- substr(DEL_RVBU_annotations$Begin.File, 1, 5)
+
+#Kodaikanal
+KOD_RVBU_annotations$conf_score <- substr(KOD_RVBU_annotations$Begin.File, 1, 5)
 ```
 
 #Fitting a logistic regression model and plotting the relationship between validation and confidence scores
 ```{r}
-GUW_RVBU_LR <- glm(valid ~ conf_score, family = 'binomial', data = GUW_RVBU)
+windowsFonts(A = windowsFont("Century Gothic")) #font for the plots
 
-prediction_values <- seq(0, 1, 0.25)
+#Guwahati
+GUW_RVBU_annotations$conf_score <- as.numeric (GUW_RVBU_annotations$conf_score) #reading confidence scores as numeric variables
 
-predictions <- predict(GUW_RVBU_LR, list(conf_score = prediction_values), type = ‘r’
-                      
-Next, plot your observations (as points) and the predicted regression relationship (a  curve)
+GUW_RVBU_LR <- glm(valid ~ conf_score, family = 'binomial', data = GUW_RVBU_annotations) #fitting the logistic regression model with binary (0 or 1) outcome
 
-plot(valid~ conf_score, data= GUW_RVBU, xlim=c(0,1), pch=16, col=rgb(0,0,0,.3))
+prediction_values <- seq(0, 1, by = 0.1) #generating a sequence of hypothetical confidence scores
 
-lines(predictions~prediction_values, lwd=4, col=rgb(1,0,0,.5))
+predictions <- predict(GUW_RVBU_LR, list(conf_score = prediction_values),  type = 'r') #obtaining the predicted probabilities of correct detections for given confidence scores
+
+GUW_RVBU_plot <- plot(GUW_RVBU_annotations$valid ~ GUW_RVBU_annotations$conf_score, data= GUW_RVBU_annotations, xlim=c(0,1), pch=16, cex = 1.2, col=rgb(0,0,0,.3), xlab = "BirdNET Confidence Score", ylab = "True Positive (0/1)", family = 'A')  
+curve(predict(GUW_RVBU_LR, data.frame(conf_score = x), type = "response"),  add = TRUE, col = "red", lwd = 2) #plotting the logistic regression curve to visualize the relationship between correct detections and confidence scores 
+
+#The below code is to obtain the confidence score threshold. However, in the case of RVBU, most of our detections are below 0.5, so we might not be able to set a confidence score cut-off.
+#p <- 0.97 #setting the probability of 0.95 (95% of detections)
+#GUW_RVBU_threshold <- (log(p/(1-p))- GUW_RVBU_LR$coefficients[1]) /GUW_RVBU_LR$coefficients[2] 
+
+#Delhi
+DEL_RVBU_annotations$conf_score <- as.numeric (DEL_RVBU_annotations$conf_score) 
+
+DEL_RVBU_LR <- glm(valid ~ conf_score, family = 'binomial', data = DEL_RVBU_annotations) 
+
+prediction_values <- seq(0, 1, by = 0.1) 
+
+predictions <- predict(DEL_RVBU_LR, list(conf_score = prediction_values),  type = 'r') 
+
+DEL_RVBU_plot <- plot(DEL_RVBU_annotations$valid ~ DEL_RVBU_annotations$conf_score, data= DEL_RVBU_annotations, xlim=c(0,1), pch=16, cex = 1.2, col=rgb(0,0,0,.3), xlab = "BirdNET Confidence Score", ylab = "True Positive (0/1)", family = 'A')  
+curve(predict(DEL_RVBU_LR, data.frame(conf_score = x), type = "response"),  add = TRUE, col = "red", lwd = 2)
+
+#Kodaikanal
+KOD_RVBU_annotations$conf_score <- as.numeric (KOD_RVBU_annotations$conf_score) 
+
+KOD_RVBU_LR <- glm(valid ~ conf_score, family = 'binomial', data = KOD_RVBU_annotations) 
+
+prediction_values <- seq(0, 1, by = 0.1) 
+
+predictions <- predict(KOD_RVBU_LR, list(conf_score = prediction_values),  type = 'r') 
+
+KOD_RVBU_plot <- plot(KOD_RVBU_annotations$valid ~ KOD_RVBU_annotations$conf_score, data= KOD_RVBU_annotations, xlim=c(0,1), pch=16, cex = 1.2, col=rgb(0,0,0,.3), xlab = "BirdNET Confidence Score", ylab = "True Positive (0/1)", family = 'A')  
+curve(predict(GUW_RVBU_LR, data.frame(conf_score = x), type = "response"),  add = TRUE, col = "red", lwd = 3) 
 ```
 
 
