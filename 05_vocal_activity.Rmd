@@ -26,8 +26,6 @@ library(lubridate)
 ```{r}
 #Guwahati:
 GUW_annotations <- read.csv ('C:/Users/pavit/OneDrive/Desktop/IISER-Tirupati-FA-2025_App/COVIDSoundscapes-project/BirdNET-vocal-activity/results/GUW_BirdNET_annotations.csv')
-
-GUW_metadata <- read.csv ('E:/CovidSoundscape project/Acoustics data/Guwahati/GUW_metadata.csv')
 ```
 
 ##Calculating  sampling effort by time of day
@@ -47,9 +45,12 @@ GUW_effort <- GUW_annotations %>%
 ##SPECIES- RVBU
 GUW_RVBU <- GUW_annotations %>%
   dplyr::filter (common_name == 'Red-vented Bulbul') %>%
-  dplyr::filter (confidence >= 0.5)
-  
-  dplyr::filter (confidence >= 0.625)
+  dplyr::filter (confidence >= 0.596)
+
+##SPECIES- GRCO
+GUW_GRCO <- GUW_annotations %>%
+  dplyr::filter (common_name == 'Greater Coucal') %>%
+  dplyr::filter (confidence >= 0.332)
 ```
 
 ##Calculating vocal activity as the percent detections at each hour of the day
@@ -64,7 +65,41 @@ GUW_RVBU_vocal_activity <- GUW_RVBU %>%
   mutate (normalized_detections = detections/effort) %>% #normalizing detections by dividing it by effort
   ungroup () %>%
   mutate(total_normalized_detections = sum(normalized_detections)) %>% 
-  mutate(percent_normalized_detections = (normalized_detections / total_normalized_detections) * 100) #this gives us the percent vocal activity for each hour of the day
+  mutate(percent_normalized_detections = (normalized_detections / total_normalized_detections) * 100) %>% #this gives us the percent vocal activity for each hour of the day
+  mutate (species = 'RVBU')
+  
+##SPECIES- GRCO
+GUW_GRCO_vocal_activity <- GUW_GRCO %>%
+  group_by(time) %>%
+  count (.) %>%
+  rename (detections = n) %>%
+  left_join(., GUW_effort, by = "time") %>% 
+  mutate (normalized_detections = detections/effort) %>% 
+  ungroup () %>%
+  mutate(total_normalized_detections = sum(normalized_detections)) %>% 
+  mutate(percent_normalized_detections = (normalized_detections / total_normalized_detections) * 100) %>%
+  mutate (species = 'GRCO')
+```
+
+##Plotting the diel vocal activity patterns
+```{r}
+#Guwahati: 
+
+GUW_vocal_activity <- bind_rows (GUW_GRCO_vocal_activity, GUW_RVBU_vocal_activity) %>%
+  filter (!time %in% c('43000','183000')) %>%
+  ggplot(., aes(x= time, y= percent_normalized_detections, group = species)) +
+  geom_line (linewidth = 0.2) +
+  facet_wrap (~ species, nrow = 2) +
+  theme_bw() +
+    theme(text = element_text(family = "A"),
+      axis.title = element_text(family = "A", size = 16, face = 'bold'),
+      axis.text = element_text(family = "A", size = 12)) +
+  labs(x = 'Time of day', y = 'Vocal activity (Percent normalized detections)') 
+
+GUW_vocal_activity + theme(strip.background = element_blank(), strip.text.x = element_blank(), strip.text.y = element_blank() )
+  
+
+
 ```
 
 

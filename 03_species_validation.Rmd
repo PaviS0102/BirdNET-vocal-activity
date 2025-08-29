@@ -19,19 +19,23 @@ library(data.table)
 library(extrafont)
 library(sf)
 library(raster)
+library(viridis)
+library(sjPlot)
+library(ggpubr)
+library(stringr)
 ```
 
 ##SPECIES- RVBU
 #Reading the validation tables
 ```{r}
 #Guwahati
-GUW_RVBU_annotations <- read.delim ('E:/COVID-Soundscapes/Guwahati/GUW_validation/RVBU/GUW_RVBU_validation_table.txt', header = TRUE, sep = "\t")
+GUW_RVBU_annotations <- read.delim ('D:/COVID-Soundscapes/Guwahati/GUW_validation/RVBU/GUW_RVBU_validation_table.txt', header = TRUE, sep = "\t")
 
 #Delhi
-DEL_RVBU_annotations <- read.delim ('E:/COVID-Soundscapes/Delhi/DEL_validation/RVBU/DEL_RVBU_validation_table.txt', header = TRUE, sep = "\t")
+DEL_RVBU_annotations <- read.delim ('D:/COVID-Soundscapes/Delhi/DEL_validation/RVBU/DEL_RVBU_validation_table.txt', header = TRUE, sep = "\t")
 
 #Kodaikanal
-KOD_RVBU_annotations <- read.delim ('E:/COVID-Soundscapes/Kodaikanal/KOD_validation/RVBU/KOD_RVBU_validation_table.txt', header = TRUE, sep = "\t")
+KOD_RVBU_annotations <- read.delim ('D:/COVID-Soundscapes/Kodaikanal/KOD_validation/RVBU/KOD_RVBU_validation_table.txt', header = TRUE, sep = "\t")
 ```
 
 #Extracting the confidence score values and adding it as a separate column
@@ -55,53 +59,198 @@ GUW_RVBU_annotations$conf_score <- as.numeric (GUW_RVBU_annotations$conf_score) 
 
 GUW_RVBU_LR <- glm(valid ~ conf_score, family = 'binomial', data = GUW_RVBU_annotations) #fitting the logistic regression model with binary (0 or 1) outcome
 
-prediction_values <- seq(0, 1, by = 0.1) #generating a sequence of hypothetical confidence scores
+prediction_values <- seq(0, 1, .001) #generating a sequence of hypothetical confidence scores
 
 predictions <- predict(GUW_RVBU_LR, list(conf_score = prediction_values),  type = 'r') #obtaining the predicted probabilities of correct detections for given confidence scores
 
-GUW_RVBU_plot <- plot(GUW_RVBU_annotations$valid ~ GUW_RVBU_annotations$conf_score, data= GUW_RVBU_annotations, xlim=c(0,1), pch=16, cex = 1.2, col=rgb(0,0,0,.3), xlab = "BirdNET Confidence Score", ylab = "True Positive (0/1)", family = 'A')  
-curve(predict(GUW_RVBU_LR, data.frame(conf_score = x), type = "response"),  add = TRUE, col = "red", lwd = 2) #plotting the logistic regression curve to visualize the relationship between correct detections and confidence scores 
+#The below code is to obtain the confidence score threshold. 
+GUW_RVBU_90 <- (log(.90 / (1 - .90)) - GUW_RVBU_LR$coefficients[1]) / GUW_RVBU_LR$coefficients[2] #confidence scorees beyond 0.248 will yield 90% true detections
+GUW_RVBU_95 <- (log(.95 / (1 - .95)) - GUW_RVBU_LR$coefficients[1]) / GUW_RVBU_LR$coefficients[2] #confidence scorees beyond 0.596 will yield 95% true detections
+GUW_RVBU_99 <- (log(.99 / (1 - .99)) - GUW_RVBU_LR$coefficients[1]) / GUW_RVBU_LR$coefficients[2] #this probability of detections is unattainable
 
-#The below code is to obtain the confidence score threshold. However, in the case of RVBU, most of our detections are below 0.5, so we might not be able to set a confidence score cut-off.
-#p <- 0.97 #setting the probability of 0.95 (95% of detections)
-#GUW_RVBU_threshold <- (log(p/(1-p))- GUW_RVBU_LR$coefficients[1]) /GUW_RVBU_LR$coefficients[2] 
+#get viridis colors (colour-blind friendly)
+viz_colors <- viridis(5)
+curve_color <- viz_colors[1]
+threshold_colors <- viz_colors[c(2, 3, 4)]
+
+#rounding threshold values to 3 decimal places for labels
+GUW_RVBU_90_label <- round(GUW_RVBU_90, 3)
+GUW_RVBU_95_label <- round(GUW_RVBU_95, 3)
+GUW_RVBU_99_label <- round(GUW_RVBU_99, 3)
+
+GUW_RVBU_LR_plot <- ggplot(GUW_RVBU_annotations, aes(x = conf_score, y = valid)) +
+    geom_point(alpha = 0.5, size = 4) +
+    geom_line(
+      data = data.frame(
+        x = prediction_values,
+        y = predictions),
+      aes(x = x, y = y),
+      color = curve_color,
+      linewidth = 1.2
+    ) +
+    geom_vline(xintercept = GUW_RVBU_90, color = threshold_colors[1], size = 1) +
+    geom_vline(xintercept = GUW_RVBU_95, color = threshold_colors[2], size = 1) +
+    geom_vline(xintercept = GUW_RVBU_99, color = threshold_colors[3], size = 1) +
+    # add threshold labels with offset
+    annotate("text",
+      x = pmin(pmax(GUW_RVBU_90, 0.05), 0.95) + 0.02,
+      y = 0.5,
+      label = paste("90%:", GUW_RVBU_90_label),
+      color = threshold_colors[1],
+      family = "A",
+      angle = 90,
+      hjust = 0.5,
+      size = 5
+    ) +
+    annotate("text",
+      x = pmin(pmax(GUW_RVBU_95, 0.05), 0.95) + 0.02,
+      y = 0.5,
+      label = paste("95%:", GUW_RVBU_95_label),
+      color = threshold_colors[2],
+      family = "A",
+      angle = 90,
+      hjust = 0.5,
+      size = 5
+    ) +
+    #annotate("text", x = pmin(pmax(GUW_RVBU_99, 0.05), 0.95) + 0.02, y = 0.5, label = paste("99%:", GUW_RVBU_99_label), color = threshold_colors[3], family = "A", angle = 90, hjust = 0.5, size = 5) + #omitting this because the corresponding probability is unattainable
+    labs(
+      x = "BirdNET Confidence Scores",
+      y = "Prediction (0/1) "
+    ) +
+    theme_bw() +
+    theme(text = element_text(family = "A"),
+      axis.title = element_text(family = "A", size = 16, face = 'bold'),
+      axis.text = element_text(family = "A", size = 12)
+    ) +
+    scale_x_continuous(limits = c(0, 1)) +
+    scale_y_continuous(limits = c(0, 1))
 
 #Delhi
 DEL_RVBU_annotations$conf_score <- as.numeric (DEL_RVBU_annotations$conf_score) 
 
 DEL_RVBU_LR <- glm(valid ~ conf_score, family = 'binomial', data = DEL_RVBU_annotations) 
 
-prediction_values <- seq(0, 1, by = 0.1) 
+prediction_values <- seq(0, 1, .001) 
 
 predictions <- predict(DEL_RVBU_LR, list(conf_score = prediction_values),  type = 'r') 
 
-DEL_RVBU_plot <- plot(DEL_RVBU_annotations$valid ~ DEL_RVBU_annotations$conf_score, data= DEL_RVBU_annotations, xlim=c(0,1), pch=16, cex = 1.2, col=rgb(0,0,0,.3), xlab = "BirdNET Confidence Score", ylab = "True Positive (0/1)", family = 'A')  
-curve(predict(DEL_RVBU_LR, data.frame(conf_score = x), type = "response"),  add = TRUE, col = "red", lwd = 2)
+DEL_RVBU_90 <- (log(.90 / (1 - .90)) - DEL_RVBU_LR$coefficients[1]) / DEL_RVBU_LR$coefficients[2]
+DEL_RVBU_95 <- (log(.95 / (1 - .95)) - DEL_RVBU_LR$coefficients[1]) / DEL_RVBU_LR$coefficients[2]
+DEL_RVBU_99 <- (log(.99 / (1 - .99)) - DEL_RVBU_LR$coefficients[1]) / DEL_RVBU_LR$coefficients[2]
+
+DEL_RVBU_90_label <- round(DEL_RVBU_90, 3)
+DEL_RVBU_95_label <- round(DEL_RVBU_95, 3)
+DEL_RVBU_99_label <- round(DEL_RVBU_99, 3)
+
+
+DEL_RVBU_LR_plot <- ggplot(DEL_RVBU_annotations, aes(x = conf_score, y = valid)) +
+    geom_point(alpha = 0.5, size = 4) +
+    geom_line(
+      data = data.frame(
+        x = prediction_values,
+        y = predictions),
+      aes(x = x, y = y),
+      color = curve_color,
+      linewidth = 1.2
+    ) +
+   geom_vline(xintercept = DEL_RVBU_90, color = threshold_colors[1], size = 1) +
+    geom_vline(xintercept = DEL_RVBU_95, color = threshold_colors[2], size = 1) +
+    geom_vline(xintercept = DEL_RVBU_99, color = threshold_colors[3], size = 1) +
+    # add threshold labels with offset
+    annotate("text", x = pmin(pmax(DEL_RVBU_90, 0.05), 0.95) + 0.02, y = 0.5, label = paste("90%:", DEL_RVBU_90_label), color = threshold_colors[1], family = "A", angle = 90, hjust = 0.5, size = 5) +
+    annotate("text", x = pmin(pmax(DEL_RVBU_95, 0.05), 0.95) + 0.02, y = 0.5, label = paste("95%:", DEL_RVBU_95_label), color = threshold_colors[2], family = "A", angle = 90, hjust = 0.5, size = 5) +
+    annotate("text", x = pmin(pmax(DEL_RVBU_99, 0.05), 0.95) + 0.02, y = 0.5, label = paste("99%:", DEL_RVBU_99_label), color = threshold_colors[3], family = "A", angle = 90, hjust = 0.5, size = 5) + #omitting because the corresponding probability is unattainable for all % cut-offs
+    labs(
+      x = "BirdNET Confidence Scores",
+      y = "Prediction (0/1) "
+    ) +
+    theme_bw() +
+    theme(text = element_text(family = "A"),
+      axis.title = element_text(family = "A", size = 16, face = 'bold'),
+      axis.text = element_text(family = "A", size = 12)
+    ) +
+    scale_x_continuous(limits = c(0, 1)) +
+    scale_y_continuous(limits = c(0, 1))
 
 #Kodaikanal
 KOD_RVBU_annotations$conf_score <- as.numeric (KOD_RVBU_annotations$conf_score) 
 
 KOD_RVBU_LR <- glm(valid ~ conf_score, family = 'binomial', data = KOD_RVBU_annotations) 
 
-prediction_values <- seq(0, 1, by = 0.1) 
+prediction_values <- seq(0, 1, .001) 
 
 predictions <- predict(KOD_RVBU_LR, list(conf_score = prediction_values),  type = 'r') 
 
-KOD_RVBU_plot <- plot(KOD_RVBU_annotations$valid ~ KOD_RVBU_annotations$conf_score, data= KOD_RVBU_annotations, xlim=c(0,1), pch=16, cex = 1.2, col=rgb(0,0,0,.3), xlab = "BirdNET Confidence Score", ylab = "True Positive (0/1)", family = 'A')  
-curve(predict(GUW_RVBU_LR, data.frame(conf_score = x), type = "response"),  add = TRUE, col = "red", lwd = 3) 
+KOD_RVBU_90 <- (log(.90 / (1 - .90)) - KOD_RVBU_LR$coefficients[1]) / KOD_RVBU_LR$coefficients[2] #confidence scores beyond 0.629 will yield 90% true detections
+KOD_RVBU_95 <- (log(.95 / (1 - .95)) - KOD_RVBU_LR$coefficients[1]) / KOD_RVBU_LR$coefficients[2] #confidence scorees beyond 0.729 will yield 95% true detections
+KOD_RVBU_99 <- (log(.99 / (1 - .99)) - KOD_RVBU_LR$coefficients[1]) / KOD_RVBU_LR$coefficients[2] #confidence scorees beyond 0.952 will yield 99% true detections
+
+KOD_RVBU_90_label <- round(KOD_RVBU_90, 3)
+KOD_RVBU_95_label <- round(KOD_RVBU_95, 3)
+KOD_RVBU_99_label <- round(KOD_RVBU_99, 3)
+
+KOD_RVBU_LR_plot <- ggplot(KOD_RVBU_annotations, aes(x = conf_score, y = valid)) +
+    geom_point(alpha = 0.5, size = 4) +
+    geom_line(
+      data = data.frame(
+        x = prediction_values,
+        y = predictions),
+      aes(x = x, y = y),
+      color = curve_color,
+      linewidth = 1.2
+    ) +
+    geom_vline(xintercept = KOD_RVBU_90, color = threshold_colors[1], size = 1) +
+    geom_vline(xintercept = KOD_RVBU_95, color = threshold_colors[2], size = 1) +
+    geom_vline(xintercept = KOD_RVBU_99, color = threshold_colors[3], size = 1) +
+    annotate("text",
+      x = pmin(pmax(KOD_RVBU_90, 0.05), 0.95) + 0.02,
+      y = 0.5,
+      label = paste("90%:", KOD_RVBU_90_label),
+      color = threshold_colors[1],
+      family = "A",
+      angle = 90,
+      hjust = 0.5,
+      size = 5
+    ) +
+    annotate("text",
+      x = pmin(pmax(KOD_RVBU_95, 0.05), 0.95) + 0.02,
+      y = 0.5,
+      label = paste("95%:", KOD_RVBU_95_label),
+      color = threshold_colors[2],
+      family = "A",
+      angle = 90,
+      hjust = 0.5,
+      size = 5
+    ) +
+    annotate("text", 
+    x = pmin(pmax(KOD_RVBU_99, 0.05), 0.95) + 0.02, 
+    y = 0.5, 
+    label = paste("99%:", KOD_RVBU_99_label), 
+    color = threshold_colors[3], family = "A", angle = 90, hjust = 0.5, size = 5) +
+    labs(
+      x = "BirdNET Confidence Scores",
+      y = "Prediction (0/1) "
+    ) +
+    theme_minimal() +
+    theme(text = element_text(family = "A"),
+      axis.title = element_text(family = "A", size = 16, face = 'bold'),
+      axis.text = element_text(family = "A", size = 12)
+    ) +
+    scale_x_continuous(limits = c(0, 1)) +
+    scale_y_continuous(limits = c(0, 1))
 ```
 
 ##SPECIES- GRCO
 #Reading the validation tables
 ```{r}
 #Guwahati
-GUW_GRCO_annotations <- read.delim ('E:/COVID-Soundscapes/Guwahati/GUW_validation/GRCO/GUW_GRCO_validation_table.txt', header = TRUE, sep = "\t")
+GUW_GRCO_annotations <- read.delim ('D:/COVID-Soundscapes/Guwahati/GUW_validation/GRCO/GUW_GRCO_validation_table.txt', header = TRUE, sep = "\t")
 
 #Delhi
-DEL_GRCO_annotations <- read.delim ('E:/COVID-Soundscapes/Delhi/DEL_validation/GRCO/DEL_GRCO_validation_table.txt', header = TRUE, sep = "\t")
+DEL_GRCO_annotations <- read.delim ('D:/COVID-Soundscapes/Delhi/DEL_validation/GRCO/DEL_GRCO_validation_table.txt', header = TRUE, sep = "\t")
 
 #Kodaikanal
-KOD_GRCO_annotations <- read.delim ('E:/COVID-Soundscapes/Kodaikanal/KOD_validation/GRCO/KOD_GRCO_validation_table.txt', header = TRUE, sep = "\t")
+KOD_GRCO_annotations <- read.delim ('D:/COVID-Soundscapes/Kodaikanal/KOD_validation/GRCO/KOD_GRCO_validation_table.txt', header = TRUE, sep = "\t")
 ```
 
 #Extracting the confidence score values and adding it as a separate column
@@ -125,38 +274,121 @@ GUW_GRCO_annotations$conf_score <- as.numeric (GUW_GRCO_annotations$conf_score)
 
 GUW_GRCO_LR <- glm(valid ~ conf_score, family = 'binomial', data = GUW_GRCO_annotations) 
 
-prediction_values <- seq(0, 1, by = 0.1) 
+prediction_values <- seq(0, 1, .001) 
 
 predictions <- predict(GUW_GRCO_LR, list(conf_score = prediction_values),  type = 'r') 
 
-GUW_GRCO_plot <- plot(GUW_GRCO_annotations$valid ~ GUW_GRCO_annotations$conf_score, data= GUW_GRCO_annotations, xlim=c(0,1), pch=16, cex = 1.2, col=rgb(0,0,0,.3), xlab = "BirdNET Confidence Score", ylab = "True Positive (0/1)", family = 'A')  
-curve(predict(GUW_GRCO_LR, data.frame(conf_score = x), type = "response"),  add = TRUE, col = "red", lwd = 2) 
+GUW_GRCO_90 <- (log(.90 / (1 - .90)) - GUW_GRCO_LR$coefficients[1]) / GUW_GRCO_LR$coefficients[2] #confidence scores beyond 0.262 will yield 90% true detections
+GUW_GRCO_95 <- (log(.95 / (1 - .95)) - GUW_GRCO_LR$coefficients[1]) / GUW_GRCO_LR$coefficients[2] #confidence scores beyond 0.332 will yield 95% true detections
+GUW_GRCO_99 <- (log(.99 / (1 - .99)) - GUW_RVBU_LR$coefficients[1]) / GUW_RVBU_LR$coefficients[2] #this confidence score is unattainable
 
-p <- 0.95 
-GUW_GRCO_threshold <- (log(p/(1-p))- GUW_GRCO_LR$coefficients[1]) /GUW_GRCO_LR$coefficients[2] 
+GUW_GRCO_90_label <- round(GUW_GRCO_90, 3)
+GUW_GRCO_95_label <- round(GUW_GRCO_95, 3)
+GUW_GRCO_99_label <- round(GUW_GRCO_99, 3)
+
+GUW_GRCO_LR_plot <- ggplot(GUW_GRCO_annotations, aes(x = conf_score, y = valid)) +
+    geom_point(alpha = 0.5, size = 4) +
+    geom_line(
+      data = data.frame(
+        x = prediction_values,
+        y = predictions),
+      aes(x = x, y = y),
+      color = curve_color,
+      linewidth = 1.2
+    ) +
+    geom_vline(xintercept = GUW_GRCO_90, color = threshold_colors[1], size = 1) +
+    geom_vline(xintercept = GUW_GRCO_95, color = threshold_colors[2], size = 1) +
+    geom_vline(xintercept = GUW_GRCO_99, color = threshold_colors[3], size = 1) +
+    annotate("text",
+      x = pmin(pmax(GUW_GRCO_90, 0.05), 0.95) + 0.02,
+      y = 0.5,
+      label = paste("90%:", GUW_GRCO_90_label),
+      color = threshold_colors[1],
+      family = "A",
+      angle = 90,
+      hjust = 0.5,
+      size = 5
+    ) +
+    annotate("text",
+      x = pmin(pmax(GUW_GRCO_95, 0.05), 0.95) + 0.02,
+      y = 0.5,
+      label = paste("95%:", GUW_GRCO_95_label),
+      color = threshold_colors[2],
+      family = "A",
+      angle = 90,
+      hjust = 0.5,
+      size = 5
+    ) +
+    #annotate("text", x = pmin(pmax(GUW_GRCO_99, 0.05), 0.99) + 0.02, y = 0.5, label = paste("99%:", GUW_GRCO_99_label),  color = threshold_colors[3], family = "A", angle = 90, hjust = 0.5, size = 5) +
+  labs(x = "BirdNET Confidence Scores",y = "Prediction (0/1)") + 
+  theme_minimal() + theme(text = element_text(family = "A"), axis.title = element_text(family = "A", size = 16, face = 'bold'), axis.text = element_text(family = "A", size = 12)) +
+    scale_x_continuous(limits = c(0, 1)) +
+    scale_y_continuous(limits = c(0, 1))
 
 #Delhi
 DEL_GRCO_annotations$conf_score <- as.numeric (DEL_GRCO_annotations$conf_score) 
 
 DEL_GRCO_LR <- glm(valid ~ conf_score, family = 'binomial', data = DEL_GRCO_annotations) 
 
-prediction_values <- seq(0, 1, by = 0.1) 
+prediction_values <- seq(0, 1, .001) 
 
-predictions <- predict(DEL_GRCO_LR, list(conf_score = prediction_values),  type = 'r') 
+predictions <- predict(DEL_GRCO_LR, list(conf_score = prediction_values),  type = 'r')
 
-DEL_GRCO_plot <- plot(DEL_GRCO_annotations$valid ~ DEL_GRCO_annotations$conf_score, data= DEL_GRCO_annotations, xlim=c(0,1), ylim=c(0,1), pch=16, cex = 1.2, col=rgb(0,0,0,.3), xlab = "BirdNET Confidence Score", ylab = "True Positive (0/1)", family = 'A')  
-curve(predict(DEL_GRCO_LR, data.frame(conf_score = x), type = "response"),  add = TRUE, col = "red", lwd = 2)
+#confiscore score threshold is unattainable as there are too few detections.
+
+DEL_GRCO_LR_plot <- ggplot(DEL_GRCO_annotations, aes(x = conf_score, y = valid)) +
+    geom_point(alpha = 0.5, size = 4) +
+    geom_line(
+      data = data.frame(
+        x = prediction_values,
+        y = predictions),
+      aes(x = x, y = y),
+      color = curve_color,
+      linewidth = 1.2
+    ) +
+    #geom_vline(xintercept = DEL_GRCO_90, color = threshold_colors[1], size = 1) +
+    #geom_vline(xintercept = DEL_GRCO_95, color = threshold_colors[2], size = 1) +
+    #geom_vline(xintercept = DEL_GRCO_99, color = threshold_colors[3], size = 1) +
+    #annotate("text", x = pmin(pmax(DEL_GRCO_90, 0.05), 0.95) + 0.02, y = 0.5, label = paste("90%:", DEL_GRCO_90_label), color = threshold_colors[1], family = "A", angle = 90, hjust = 0.5, size = 5) +
+    #annotate("text", x = pmin(pmax(DEL_GRCO_95, 0.05), 0.95) + 0.02, y = 0.5, label = paste("95%:", DEL_GRCO_95_label), color = threshold_colors[2], family = "A", angle = 90, hjust = 0.5, size = 5) +
+    #annotate("text", x = pmin(pmax(GUW_GRCO_99, 0.05), 0.99) + 0.02, y = 0.5, label = paste("99%:", GUW_GRCO_99_label),  color = threshold_colors[3], family = "A", angle = 90, hjust = 0.5, size = 5) +
+  labs(x = "BirdNET Confidence Scores",y = "Prediction (0/1)") + 
+  theme_minimal() + theme(text = element_text(family = "A"), axis.title = element_text(family = "A", size = 16, face = 'bold'), axis.text = element_text(family = "A", size = 12)) +
+    scale_x_continuous(limits = c(0, 1)) +
+    scale_y_continuous(limits = c(0, 1))
 
 #Kodaikanal
 KOD_GRCO_annotations$conf_score <- as.numeric (KOD_GRCO_annotations$conf_score) 
 
 KOD_GRCO_LR <- glm(valid ~ conf_score, family = 'binomial', data = KOD_GRCO_annotations) 
 
-prediction_values <- seq(0, 1, by = 0.1) 
+prediction_values <- seq(0, 1, .001) 
 
 predictions <- predict(KOD_GRCO_LR, list(conf_score = prediction_values),  type = 'r') 
 
-KOD_GRCO_plot <- plot(KOD_GRCO_annotations$valid ~ KOD_GRCO_annotations$conf_score, data= KOD_GRCO_annotations, xlim=c(0,1), pch=16, cex = 1.2, col=rgb(0,0,0,.3), xlab = "BirdNET Confidence Score", ylab = "True Positive (0/1)", family = 'A')  
-curve(predict(GUW_GRCO_LR, data.frame(conf_score = x), type = "response"),  add = TRUE, col = "red", lwd = 3) 
+#confiscore score threshold is unattainable as there are too few detections.
+
+KOD_GRCO_LR_plot <- ggplot(KOD_GRCO_annotations, aes(x = conf_score, y = valid)) +
+    geom_point(alpha = 0.5, size = 4) +
+    geom_line(
+      data = data.frame(
+        x = prediction_values,
+        y = predictions),
+      aes(x = x, y = y),
+      color = curve_color,
+      linewidth = 1.2
+    ) +
+    #geom_vline(xintercept = KOD_GRCO_90, color = threshold_colors[1], size = 1) +
+    #geom_vline(xintercept = KOD_GRCO_95, color = threshold_colors[2], size = 1) +
+    #geom_vline(xintercept = KOD_GRCO_99, color = threshold_colors[3], size = 1) +
+    #annotate("text", x = pmin(pmax(KOD_GRCO_90, 0.05), 0.95) + 0.02, y = 0.5, label = paste("90%:", KOD_GRCO_90_label), color = threshold_colors[1], family = "A", angle = 90, hjust = 0.5, size = 5) +
+    #annotate("text", x = pmin(pmax(KOD_GRCO_95, 0.05), 0.95) + 0.02, y = 0.5, label = paste("95%:", KOD_GRCO_95_label), color = threshold_colors[2], family = "A", angle = 90, hjust = 0.5, size = 5 ) +
+    #annotate("text", x = pmin(pmax(KOD_GRCO_99, 0.05), 0.99) + 0.02, y = 0.5, label = paste("99%:", KOD_GRCO_99_label),  color = threshold_colors[3], family = "A", angle = 90, hjust = 0.5, size = 5) +
+  labs(x = "BirdNET Confidence Scores",y = "Prediction (0/1)") + 
+  theme_minimal() + theme(text = element_text(family = "A"), axis.title = element_text(family = "A", size = 16, face = 'bold'), axis.text = element_text(family = "A", size = 12)) +
+    scale_x_continuous(limits = c(0, 1)) +
+    scale_y_continuous(limits = c(0, 1))
+
+#It is not possible to obtain confidence thresholds since there are too few detections.
 ```
 
