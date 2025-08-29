@@ -1,0 +1,101 @@
+---
+title: "06_sampling_effort"
+output: html_document
+---
+
+#This script to obtain a figure of sampling effort.
+
+##Loading required libraries
+```{r}
+library(tidyverse)
+library(dplyr)
+library(stringr)
+library(vegan)
+library(ggplot2)
+library(scico)
+library(data.table)
+library(extrafont)
+library(sf)
+library(raster)
+library(lubridate)
+```
+
+##Reading all the metadata files
+```{r}
+##Reading the metadata files and obtaining a list of files which have: duration ~ 295 seconds (around 5 mins), sampling rate = 32 kHz, channel = 1 (mono)
+#Guwahati:
+GUW_metadata <- read.csv ('E:/CovidSoundscape project/Acoustics data/Guwahati/GUW_metadata.csv') 
+GUW_metadata_V1 <- GUW_metadata %>%
+  filter (duration >= 295, sample.rate == 32, channels == 1) %>% #filtering out the others
+  rename (filename = sound.files) %>% #renaming the column for future analyses
+  mutate (loc = 'Guwahati')
+  
+#Delhi:
+DEL_metadata <- read.csv ('E:/CovidSoundscape project/Acoustics data/Delhi/DEL_metadata.csv') 
+DEL_metadata_V1 <- DEL_metadata %>%
+  filter (duration >= 295, sample.rate == 32, channels == 1) %>%
+  rename (filename = sound.files) %>%
+  mutate (loc = 'Delhi')
+
+#Kodaikanal:
+KOD_metadata <- read.csv ('E:/CovidSoundscape project/Acoustics data/Kodaikanal/KOD_metadata.csv') 
+KOD_metadata_V1 <- KOD_metadata %>%
+  filter (duration >= 295, sample.rate == 32, channels == 1) %>%
+  rename (filename = sound.files) %>%
+  mutate (loc = 'Kodaikanal')
+
+#Mumbai:
+MUM_metadata <- read.csv ('E:/CovidSoundscape project/Acoustics data/Mumbai/MUM_metadata.csv') 
+MUM_metadata_V1 <- MUM_metadata %>%
+  filter (duration >= 295, sample.rate == 32, channels == 1) %>%
+  rename (filename = sound.files) %>%
+  mutate (loc = 'Mumbai')
+
+#Tirupati:
+TPT_metadata <- read.csv ('E:/CovidSoundscape project/Acoustics data/Tirupati/TPT_metadata.csv') 
+TPT_metadata_V1 <- TPT_metadata %>%
+  filter (duration >= 295, sample.rate == 32, channels == 1) %>%
+  rename (filename = sound.files) %>%
+  mutate (loc = 'Tirupati')
+
+#Valparai:
+VAL_metadata <- read.csv ('E:/CovidSoundscape project/Acoustics data/Valparai/VAL_metadata.csv') 
+VAL_metadata_V1 <- VAL_metadata %>%
+  filter (duration >= 295, sample.rate == 32, channels == 1) %>%
+  rename (filename = sound.files) %>%
+  mutate (loc = 'Valparai')
+```
+
+##Combining all the metadata files and extracting information about dates
+```{r}
+metadata <- bind_rows (GUW_metadata_V1, DEL_metadata_V1, KOD_metadata_V1, MUM_metadata_V1, TPT_metadata_V1, VAL_metadata_V1) %>% #combining all the metadata
+  separate (., col = filename, into = c("site_code", "date", "time"), sep = '_', remove = FALSE) %>% #splitting filename into three columns: site_code, date, and time
+ mutate(time = tools::file_path_sans_ext(time)) #removing .wav file extension
+```
+
+##Calculating monthly sampling durations
+```{r}
+metadata$date <- ymd(metadata$date) #to make sure R reads the date column in the correct format
+
+sampling_effort_plot <- metadata %>%
+  dplyr::select (loc, date) %>%
+  group_by(loc, yearMon = as.yearmon(date)) %>% #to represent monthly data
+  summarise(first_date = first(date), last_date = last(date)) %>% 
+   ggplot(., aes(y = loc)) + 
+  geom_segment(aes(x = first_date, xend = last_date, 
+                   yend = loc), 
+               color = "grey", size = 5) +
+   scale_x_date(
+    limits = as.Date(c("2021-12-12", "2024-02-06")), 
+    breaks = seq(as.Date("2021-12-12"), as.Date("2024-02-06"), by = "month"),
+    date_labels = "%b %Y", 
+    expand = expansion(mult = c(0.05, 0))) +
+  labs(x = "Sampling Dates",
+       y = "Locations") +
+  theme_bw () +
+  theme(axis.title = element_text(size = 18, family = "A", face = "bold"),  
+  axis.text.x = element_text(angle = 45, hjust = 1), 
+  axis.text = element_text(size = 14, family = "A", colour = "black"))
+```
+
+
